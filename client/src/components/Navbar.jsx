@@ -1,7 +1,7 @@
 // client/src/components/Navbar.jsx
-// Top navigation bar for CivicFix
+// Top navigation bar for CivicFix with React Router NavLink active indicators
 
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
@@ -14,37 +14,36 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" aria-label="Main Navigation">
       <div className="nav-container">
         <Link to="/" className="nav-logo">
           Civic<span>Fix</span>
         </Link>
 
         <div className="nav-links">
-          <Link to="/" className="nav-item">
+          {/* Home NavLink with 'end' prop so it does not match every nested route */}
+          <NavLink to="/" end className="nav-item">
             Home
-          </Link>
+          </NavLink>
 
-          <Link to="/map" className="nav-item">
+          <NavLink to="/map" className="nav-item">
             Map
-          </Link>
+          </NavLink>
 
           {isAuthenticated ? (
             <>
-              <Link to="/report" className="nav-item">
+              <NavLink to="/report" className="nav-item">
                 Report Issue
-              </Link>
+              </NavLink>
 
-              <Link to="/dashboard" className="nav-item">
+              <NavLink to="/dashboard" className="nav-item">
                 Dashboard
-              </Link>
+              </NavLink>
 
               {isAdmin && (
-                <Link to="/admin" className="nav-item nav-admin-link">
-                  <span className="nav-admin-badge" title="Administrator Console">
-                    Admin
-                  </span>
-                </Link>
+                <NavLink to="/admin" className="nav-item nav-admin-link">
+                  Admin
+                </NavLink>
               )}
 
               <span className="nav-user-greeting">
@@ -57,12 +56,12 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/login" className="nav-item">
+              <NavLink to="/login" className="nav-item">
                 Login
-              </Link>
-              <Link to="/register" className="btn btn-primary btn-sm">
+              </NavLink>
+              <NavLink to="/register" className="nav-item nav-register-btn">
                 Register
-              </Link>
+              </NavLink>
             </>
           )}
         </div>
