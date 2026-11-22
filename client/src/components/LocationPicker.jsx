@@ -1,10 +1,11 @@
 // client/src/components/LocationPicker.jsx
-// Interactive Leaflet map component for selecting issue coordinates in Bengaluru
+// Interactive Leaflet map component with OpenStreetMap Nominatim place search
 
 import { useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { searchPlaces } from "../api/geocode";
 
 // Fix for Vite default marker icon bug:
 // Leaflet dynamically resolves marker image assets using relative paths at runtime.
@@ -44,12 +45,68 @@ const MapClickHandler = ({ onLocationPick }) => {
  * LocationPicker Component
  * @param {Object} props
  * @param {Object|null} props.value - Selected coordinates { lat, lng }
- * @param {Function} props.onChange - Callback when location is selected/dragged
+ * @param {Function} props.onChange - Callback when location is selected/dragged/searched
  */
 const LocationPicker = ({ value, onChange }) => {
   const [geoError, setGeoError] = useState("");
   const [gettingLocation, setGettingLocation] = useState(false);
+
+  // Place Search State (Nominatim)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+
   const mapRef = useRef(null);
+
+  // Handle place search: triggered ONLY on Enter key or Search button click (per Nominatim policy)
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault();
+    setSearchError("");
+
+    if (!searchQuery.trim()) {
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchResults([]);
+
+    try {
+      const results = await searchPlaces(searchQuery);
+      if (results.length === 0) {
+        setSearchError("No places found in Bengaluru. Try another landmark or street name.");
+      } else {
+        setSearchResults(results);
+      }
+    } catch (err) {
+      setSearchError("Unable to search places right now. Please select on the map manually.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // When Enter is pressed in search input
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
+  // When a search result item is clicked
+  const handleSelectSearchResult = (result) => {
+    const coords = { lat: result.lat, lng: result.lng };
+    onChange(coords);
+
+    // Fly map to selected place with close zoom (~17)
+    if (mapRef.current) {
+      mapRef.current.flyTo([result.lat, result.lng], 17);
+    }
+
+    // Clear search results dropdown
+    setSearchResults([]);
+    setSearchError("");
+  };
 
   // Handle marker dragend
   const handleMarkerDragEnd = (e) => {
@@ -81,7 +138,7 @@ const LocationPicker = ({ value, onChange }) => {
 
         // Pan and zoom map to current location
         if (mapRef.current) {
-          mapRef.current.flyTo([newCoords.lat, newCoords.lng], 15);
+          mapRef.current.flyTo([newCoords.lat, newCoords.lng], 16);
         }
       },
       (error) => {
@@ -106,6 +163,51 @@ const LocationPicker = ({ value, onChange }) => {
 
   return (
     <div className="location-picker-container">
+      {/* 1. Nominatim Place Search Input & Button (no autocomplete, search on enter or click) */}
+      <div className="place-search-container">
+        <div className="place-search-input-group">
+          <input
+            type="text"
+            placeholder="Search place in Bengaluru (e.g. Indiranagar, MG Road, Koramangala)..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              if (searchError) setSearchError("");
+            }}
+            onKeyDown={handleSearchKeyDown}
+            disabled={isSearching}
+            className="place-search-input"
+          />
+          <button
+            type="button"
+            onClick={handleSearch}
+            disabled={isSearching || !searchQuery.trim()}
+            className="btn btn-primary btn-sm btn-search-place"
+          >
+            {isSearching ? "Searching..." : "🔍 Search"}
+          </button>
+        </div>
+
+        {/* Search Results Dropdown List */}
+        {searchResults.length > 0 && (
+          <ul className="place-search-results-list">
+            {searchResults.map((result, idx) => (
+              <li
+                key={idx}
+                onClick={() => handleSelectSearchResult(result)}
+                className="place-search-result-item"
+              >
+                <span className="place-result-icon">📍</span>
+                <span className="place-result-label">{result.label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {searchError && <div className="place-search-error">{searchError}</div>}
+      </div>
+
+      {/* 2. Map Header with Instructions & Geolocation Button */}
       <div className="location-picker-header">
         <span className="location-picker-instructions">
           Click on the map or drag the marker to pinpoint the issue
@@ -123,6 +225,7 @@ const LocationPicker = ({ value, onChange }) => {
 
       {geoError && <div className="alert alert-warning">{geoError}</div>}
 
+      {/* 3. Leaflet Map Container */}
       <div className="leaflet-map-wrapper">
         <MapContainer
           center={value ? [value.lat, value.lng] : BENGALURU_COORDINATES}
@@ -158,6 +261,7 @@ const LocationPicker = ({ value, onChange }) => {
         </MapContainer>
       </div>
 
+      {/* 4. Selected Coordinates Display */}
       <div className="location-coordinates-display">
         {value ? (
           <span className="coords-badge coords-selected">
@@ -165,7 +269,7 @@ const LocationPicker = ({ value, onChange }) => {
           </span>
         ) : (
           <span className="coords-badge coords-empty">
-            ⚠️ No location selected yet (Click on the map above)
+            ⚠️ No location selected yet (Search place or click on map above)
           </span>
         )}
       </div>

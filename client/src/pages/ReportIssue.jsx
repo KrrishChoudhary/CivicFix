@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
+import { reverseGeocode } from "../api/geocode";
 import LocationPicker from "../components/LocationPicker";
 import StatusBadge from "../components/StatusBadge";
 
@@ -25,6 +26,8 @@ const ReportIssue = () => {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("pothole");
   const [address, setAddress] = useState("");
+  const [isAddressManuallyEdited, setIsAddressManuallyEdited] = useState(false);
+  const [isLookingUpAddress, setIsLookingUpAddress] = useState(false);
   const [location, setLocation] = useState(null); // { lat, lng }
 
   const [imageFile, setImageFile] = useState(null);
@@ -36,6 +39,41 @@ const ReportIssue = () => {
 
   // Duplicate detection state: stores open nearby issues within 50m
   const [nearbyIssues, setNearbyIssues] = useState([]);
+
+  // Automatic Reverse Geocoding: whenever location changes, populate address unless manually edited
+  useEffect(() => {
+    if (!location || location.lat === undefined || location.lng === undefined) {
+      return;
+    }
+
+    // Do not overwrite if user has manually typed in the address field
+    if (isAddressManuallyEdited) {
+      return;
+    }
+
+    let isMounted = true;
+    const lookupAddress = async () => {
+      setIsLookingUpAddress(true);
+      try {
+        const detectedAddress = await reverseGeocode(location.lat, location.lng);
+        if (isMounted && detectedAddress && !isAddressManuallyEdited) {
+          setAddress(detectedAddress);
+        }
+      } catch (err) {
+        console.warn("[Reverse Geocode Warning]:", err.message);
+      } finally {
+        if (isMounted) {
+          setIsLookingUpAddress(false);
+        }
+      }
+    };
+
+    lookupAddress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location, isAddressManuallyEdited]);
 
   // Duplicate detection query: calls GET /api/issues/nearby when location and category change
   useEffect(() => {
@@ -239,17 +277,30 @@ const ReportIssue = () => {
             <small className="form-help">{description.length}/1000 characters</small>
           </div>
 
-          {/* Optional Address */}
+          {/* Optional Address (Auto-filled by reverse geocoding, stays editable) */}
           <div className="form-group">
-            <label htmlFor="address">Landmark / Street Address (Optional)</label>
+            <div className="label-with-hint">
+              <label htmlFor="address">Landmark / Street Address (Optional)</label>
+              {isLookingUpAddress && (
+                <span className="address-lookup-hint">📍 Looking up address...</span>
+              )}
+            </div>
             <input
               id="address"
               type="text"
               placeholder="e.g. Opposite Sony World, 4th Block, Koramangala"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(e) => {
+                setAddress(e.target.value);
+                setIsAddressManuallyEdited(true); // User manually edited address; stop auto-overwrite
+              }}
               disabled={submitting}
             />
+            <small className="form-help">
+              {isAddressManuallyEdited
+                ? "Manually edited address."
+                : "Automatically filled from selected map location (editable)."}
+            </small>
           </div>
 
           {/* Image Upload with Preview */}

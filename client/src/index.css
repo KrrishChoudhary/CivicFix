@@ -1419,3 +1419,128 @@ body {
   font-style: italic;
 }
 
+/* ==========================================================================
+   Step 9b: Place Search & Automatic Address Lookup
+   ========================================================================== */
+
+/* Place Search (Nominatim) */
+.place-search-container {
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.place-search-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.place-search-input {
+  flex: 1;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background-color: #ffffff;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.place-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.btn-search-place {
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.place-search-results-list {
+  list-style: none;
+  margin-top: 0.4rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background-color: #ffffff;
+  box-shadow: var(--shadow-lg);
+  max-height: 220px;
+  overflow-y: auto;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.place-search-result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.place-search-result-item:last-child {
+  border-bottom: none;
+}
+
+.place-search-result-item:hover {
+  background-color: #eff6ff;
+  color: var(--primary-color);
+}
+
+.place-result-icon {
+  font-size: 0.95rem;
+  margin-top: 0.1rem;
+}
+
+.place-result-label {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.place-search-error {
+  font-size: 0.825rem;
+  color: #b45309;
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius);
+  margin-top: 0.5rem;
+}
+
+/* Address Label with Auto-Lookup Hint */
+.label-with-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.label-with-hint label {
+  margin-bottom: 0;
+}
+
+.address-lookup-hint {
+  font-size: 0.8rem;
+  color: var(--primary-color);
+  font-weight: 500;
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
