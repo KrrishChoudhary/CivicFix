@@ -1,5 +1,6 @@
 // client/src/pages/MapView.jsx
-// Public interactive Leaflet map displaying all reported civic issues in Bengaluru
+// Public interactive Leaflet map displaying reported civic issues across Bengaluru
+// Supports dual visualization modes: Individual Markers (Pins) and Hotspot Intensity (Heatmap)
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -8,6 +9,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api/axios";
 import StatusBadge from "../components/StatusBadge";
+import HeatmapLayer from "../components/HeatmapLayer";
 
 // Fix for Vite default marker icon bug
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -48,6 +50,9 @@ const MapView = () => {
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
 
+  // Visualization mode toggle: "pins" (default individual markers) or "heatmap" (density/priority layer)
+  const [viewMode, setViewMode] = useState("pins");
+
   // Fetch issues with optional category and status query filters
   useEffect(() => {
     const fetchIssues = async () => {
@@ -71,6 +76,39 @@ const MapView = () => {
     fetchIssues();
   }, [category, status]);
 
+  /**
+   * Viva Explanation for Heatmap Intensity Calculation:
+   * 1. Exclude Resolved: Civic hotspot maps help municipal staff prioritize active work,
+   *    so resolved issues are omitted from the heatmap.
+   * 2. Coordinate Conversion: MongoDB GeoJSON coordinates are [longitude, latitude].
+   *    Leaflet requires [latitude, longitude].
+   * 3. Normalized Intensity: Calculated as (issue.priorityScore / maxPriorityScore).
+   * 4. Minimum Intensity Clamping: A minimum threshold of 0.2 ensures even low-priority
+   *    or newly reported issues remain visible as faint thermal spots.
+   */
+  const heatmapIssues = issues.filter((issue) => issue.status !== "resolved");
+
+  const maxPriority = Math.max(
+    1,
+    ...heatmapIssues.map((issue) => issue.priorityScore || 0)
+  );
+
+  const heatmapPoints = heatmapIssues
+    .filter(
+      (issue) =>
+        issue.location?.coordinates &&
+        Array.isArray(issue.location.coordinates) &&
+        issue.location.coordinates.length === 2
+    )
+    .map((issue) => {
+      const [lng, lat] = issue.location.coordinates;
+      const score = issue.priorityScore || 0;
+      const calculatedIntensity = score / maxPriority;
+      // Clamp intensity between 0.2 (minimum visibility) and 1.0 (maximum heat)
+      const intensity = Math.max(0.2, Math.min(1.0, calculatedIntensity));
+      return [lat, lng, Number(intensity.toFixed(2))];
+    });
+
   return (
     <div className="page-container map-page-container">
       <div className="map-page-header">
@@ -86,8 +124,36 @@ const MapView = () => {
         </Link>
       </div>
 
-      {/* Filter Controls Bar */}
+      {/* Filter and View Mode Controls Bar */}
       <div className="map-filters-bar">
+        {/* Visualization Toggle: Pins vs Heatmap */}
+        <div className="filter-group view-mode-filter-group">
+          <label>View Mode:</label>
+          <div className="map-view-toggle">
+            <label className={`view-toggle-option ${viewMode === "pins" ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="viewMode"
+                value="pins"
+                checked={viewMode === "pins"}
+                onChange={(e) => setViewMode(e.target.value)}
+              />
+              <span>📍 Pins</span>
+            </label>
+            <label className={`view-toggle-option ${viewMode === "heatmap" ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="viewMode"
+                value="heatmap"
+                checked={viewMode === "heatmap"}
+                onChange={(e) => setViewMode(e.target.value)}
+              />
+              <span>🔥 Heatmap</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Category Filter */}
         <div className="filter-group">
           <label htmlFor="category-filter">Category:</label>
           <select
@@ -103,6 +169,7 @@ const MapView = () => {
           </select>
         </div>
 
+        {/* Status Filter */}
         <div className="filter-group">
           <label htmlFor="status-filter">Status:</label>
           <select
@@ -119,7 +186,11 @@ const MapView = () => {
         </div>
 
         <div className="filter-count-badge">
-          {loading ? "Loading..." : `${issues.length} ${issues.length === 1 ? "issue" : "issues"} found`}
+          {loading
+            ? "Loading..."
+            : viewMode === "heatmap"
+            ? `${heatmapPoints.length} active hotspot ${heatmapPoints.length === 1 ? "point" : "points"}`
+            : `${issues.length} ${issues.length === 1 ? "issue" : "issues"} found`}
         </div>
       </div>
 
@@ -137,50 +208,81 @@ const MapView = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {issues.map((issue) => {
-            // MongoDB coordinates are [longitude, latitude] -> Leaflet requires [latitude, longitude]
-            const coords = issue.location?.coordinates;
-            if (!coords || coords.length !== 2) return null;
-            const position = [coords[1], coords[0]];
+          {/* Conditional rendering based on active view mode */}
+          {viewMode === "heatmap" ? (
+            <HeatmapLayer points={heatmapPoints} />
+          ) : (
+            issues.map((issue) => {
+              // MongoDB coordinates are [longitude, latitude] -> Leaflet requires [latitude, longitude]
+              const coords = issue.location?.coordinates;
+              if (!coords || coords.length !== 2) return null;
+              const position = [coords[1], coords[0]];
 
-            return (
-              <Marker key={issue._id} position={position}>
-                <Popup className="map-popup">
-                  <div className="popup-content">
-                    {issue.imageUrl && (
-                      <img
-                        src={issue.imageUrl}
-                        alt={issue.title}
-                        className="popup-thumbnail"
-                      />
-                    )}
+              return (
+                <Marker key={issue._id} position={position}>
+                  <Popup className="map-popup">
+                    <div className="popup-content">
+                      {issue.imageUrl && (
+                        <img
+                          src={issue.imageUrl}
+                          alt={issue.title}
+                          className="popup-thumbnail"
+                        />
+                      )}
 
-                    <div className="popup-tags">
-                      <span className="popup-category">{issue.category}</span>
-                      <StatusBadge status={issue.status} />
+                      <div className="popup-tags">
+                        <span className="popup-category">{issue.category}</span>
+                        <StatusBadge status={issue.status} />
+                      </div>
+
+                      <h4 className="popup-title">{issue.title}</h4>
+
+                      {issue.address && (
+                        <p className="popup-address">📍 {issue.address}</p>
+                      )}
+
+                      <div className="popup-footer-row">
+                        <span className="popup-priority">
+                          ⚡ Priority: {issue.priorityScore ?? 0}
+                        </span>
+                        <Link to={`/issues/${issue._id}`} className="popup-link">
+                          Details →
+                        </Link>
+                      </div>
                     </div>
-
-                    <h4 className="popup-title">{issue.title}</h4>
-
-                    {issue.address && (
-                      <p className="popup-address">📍 {issue.address}</p>
-                    )}
-
-                    <Link to={`/issues/${issue._id}`} className="popup-link">
-                      View Full Details →
-                    </Link>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                  </Popup>
+                </Marker>
+              );
+            })
+          )}
         </MapContainer>
       </div>
 
+      {/* Heatmap Legend (shown only in Heatmap view mode) */}
+      {viewMode === "heatmap" && (
+        <div className="heatmap-legend-card">
+          <div className="heatmap-legend-header">
+            <span className="heatmap-legend-icon">🔥</span>
+            <strong>Hotspot Intensity Legend</strong>
+          </div>
+          <div className="heatmap-gradient-bar"></div>
+          <div className="heatmap-gradient-labels">
+            <span>Low Priority (0.2)</span>
+            <span>Moderate Priority</span>
+            <span>High Priority / Clustered (1.0)</span>
+          </div>
+          <p className="heatmap-legend-text">
+            Brighter, warmer areas (yellow and red) indicate a higher concentration or higher
+            priority score of unresolved civic reports (such as dangerous potholes or burst water
+            mains with citizen upvotes). Resolved issues are excluded from the heatmap.
+          </p>
+        </div>
+      )}
+
       {/* Empty State Message */}
-      {!loading && issues.length === 0 && (
+      {!loading && (viewMode === "heatmap" ? heatmapPoints.length === 0 : issues.length === 0) && (
         <div className="empty-state-card">
-          <p>📍 No civic issues found matching the selected filters.</p>
+          <p>📍 No active civic issues found matching the selected filters.</p>
           {(category || status) && (
             <button
               onClick={() => {

@@ -1694,3 +1694,117 @@ body {
   white-space: nowrap;
 }
 
+/* Heatmap and View Mode Styles (Step 9d) */
+.view-mode-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-view-toggle {
+  display: inline-flex;
+  background-color: #e2e8f0;
+  padding: 2px;
+  border-radius: var(--radius);
+  gap: 2px;
+}
+
+.view-toggle-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--secondary-color);
+  transition: all 0.2s ease;
+  user-select: none;
+  margin-bottom: 0 !important;
+}
+
+.view-toggle-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.view-toggle-option.active {
+  background-color: #ffffff;
+  color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Heatmap Legend */
+.heatmap-legend-card {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background-color: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+}
+
+.heatmap-legend-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  margin-bottom: 0.6rem;
+}
+
+.heatmap-legend-icon {
+  font-size: 1.1rem;
+}
+
+.heatmap-gradient-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    to right,
+    #3b82f6 0%,
+    #06b6d4 35%,
+    #10b981 65%,
+    #eab308 85%,
+    #ef4444 100%
+  );
+  margin-bottom: 0.35rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.heatmap-gradient-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.heatmap-legend-text {
+  font-size: 0.825rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* Map Popup Footer Row */
+.popup-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.popup-priority {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #92400e;
+  background-color: #fef3c7;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+}
+
