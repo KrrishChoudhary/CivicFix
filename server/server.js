@@ -37,6 +37,10 @@ app.get("/api/health", (req, res) => {
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
+// Issue routes mounted at /api/issues
+const issueRoutes = require("./routes/issueRoutes");
+app.use("/api/issues", issueRoutes);
+
 // 6. Error Handling Middlewares
 // Catch requests to undefined routes (404)
 app.use(notFound);
