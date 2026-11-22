@@ -25,6 +25,10 @@ const Navbar = () => {
             Home
           </Link>
 
+          <Link to="/map" className="nav-item">
+            Map
+          </Link>
+
           {isAuthenticated ? (
             <>
               <Link to="/report" className="nav-item">
@@ -36,9 +40,11 @@ const Navbar = () => {
               </Link>
 
               {isAdmin && (
-                <span className="nav-admin-badge" title="Administrator">
-                  Admin
-                </span>
+                <Link to="/admin" className="nav-item nav-admin-link">
+                  <span className="nav-admin-badge" title="Administrator Console">
+                    Admin
+                  </span>
+                </Link>
               )}
 
               <span className="nav-user-greeting">
