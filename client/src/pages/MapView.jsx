@@ -50,8 +50,8 @@ const MapView = () => {
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
 
-  // Visualization mode toggle: "pins" (default individual markers) or "heatmap" (density/priority layer)
-  const [viewMode, setViewMode] = useState("pins");
+  // Visualization mode toggle: "heatmap" (default hotspot layer) or "pins" (individual markers)
+  const [viewMode, setViewMode] = useState("heatmap");
 
   // Fetch issues with optional category and status query filters
   useEffect(() => {
@@ -126,30 +126,26 @@ const MapView = () => {
 
       {/* Filter and View Mode Controls Bar */}
       <div className="map-filters-bar">
-        {/* Visualization Toggle: Pins vs Heatmap */}
+        {/* Visualization Toggle: Segmented Control [ Heatmap | Pins ] (Heatmap first & default) */}
         <div className="filter-group view-mode-filter-group">
           <label>View Mode:</label>
-          <div className="map-view-toggle">
-            <label className={`view-toggle-option ${viewMode === "pins" ? "active" : ""}`}>
-              <input
-                type="radio"
-                name="viewMode"
-                value="pins"
-                checked={viewMode === "pins"}
-                onChange={(e) => setViewMode(e.target.value)}
-              />
-              <span>📍 Pins</span>
-            </label>
-            <label className={`view-toggle-option ${viewMode === "heatmap" ? "active" : ""}`}>
-              <input
-                type="radio"
-                name="viewMode"
-                value="heatmap"
-                checked={viewMode === "heatmap"}
-                onChange={(e) => setViewMode(e.target.value)}
-              />
-              <span>🔥 Heatmap</span>
-            </label>
+          <div className="segmented-control" role="group" aria-label="Map view mode">
+            <button
+              type="button"
+              className={`segmented-btn ${viewMode === "heatmap" ? "active" : ""}`}
+              onClick={() => setViewMode("heatmap")}
+              aria-pressed={viewMode === "heatmap"}
+            >
+              🔥 Heatmap
+            </button>
+            <button
+              type="button"
+              className={`segmented-btn ${viewMode === "pins" ? "active" : ""}`}
+              onClick={() => setViewMode("pins")}
+              aria-pressed={viewMode === "pins"}
+            >
+              📍 Pins
+            </button>
           </div>
         </div>
 
@@ -267,15 +263,17 @@ const MapView = () => {
           </div>
           <div className="heatmap-gradient-bar"></div>
           <div className="heatmap-gradient-labels">
-            <span>Low Priority / Residential (0.2)</span>
-            <span>Commercial / Moderate</span>
-            <span>Industrial & Choke Hotspots (1.0)</span>
+            <span>Low (Blue)</span>
+            <span>Minor (Cyan)</span>
+            <span>Moderate (Lime)</span>
+            <span>Medium (Yellow)</span>
+            <span>High (Orange)</span>
+            <span>Severe Hotspot (Red)</span>
           </div>
           <p className="heatmap-legend-text">
-            Brighter, warmer areas (amber and fiery red) indicate heavy concentrations of high-priority
-            unresolved civic issues (such as heavy truck craters in Peenya Industrial Area or severe
-            drainage choke points at Silk Board with multiple citizen upvotes). Calm blue spots denote
-            isolated, low-priority residential reports. Resolved issues are excluded.
+            Thermal spectrum ranges from cool blue (isolated low-priority reports) through cyan, lime,
+            yellow, orange, to fiery red (heavy industrial clusters in Peenya and major traffic choke bottlenecks
+            like Silk Board with high citizen upvotes). Resolved issues are excluded from the heatmap.
           </p>
         </div>
       )}

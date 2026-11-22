@@ -37,21 +37,28 @@ const HeatmapLayer = ({ points = [], options = {} }) => {
   useEffect(() => {
     if (!map) return;
 
-    // Create and add the heatmap layer with a realistic multi-stop thermal gradient
-    // Viva note: radius and blur define the spread of the Gaussian blur kernel for each point.
-    // The gradient matches the UI legend: blue (cool, low priority) -> cyan -> green -> yellow -> fiery red (industrial hotspot).
+    /**
+     * Viva Explanation for Heatmap Configuration:
+     * - radius (28): Pixel radius of Gaussian influence around each civic issue coordinate.
+     * - blur (22): Gaussian blur standard deviation for smooth, rich thermal dissipation without pixelation.
+     * - maxZoom (16): Peak intensity zoom level; setting to 16 ensures hotspot clusters maintain
+     *   vibrant thermal presence when zooming into ward and street levels without washing out.
+     * - minOpacity (0.25): Guarantees low-priority isolated issues remain clearly identifiable.
+     * - gradient: Rich 6-stage thermal spectrum:
+     *   Blue (0.2) -> Cyan (0.4) -> Lime (0.6) -> Yellow (0.75) -> Orange (0.88) -> Red (1.0).
+     */
     const heatLayer = L.heatLayer(points, {
       radius: 28,
-      blur: 18,
-      maxZoom: 17,
+      blur: 22,
+      maxZoom: 16,
       minOpacity: 0.25,
       gradient: {
-        0.2: "#3b82f6",   // Calm Blue (low-priority / isolated residential report)
-        0.4: "#06b6d4",   // Cyan (minor civic issue)
-        0.6: "#10b981",   // Green (moderate urgency)
-        0.75: "#eab308",  // Yellow / Amber (commercial cluster)
-        0.9: "#f97316",   // Orange (high priority)
-        1.0: "#ef4444",   // Fiery Red (massive industrial / traffic bottleneck hotspot)
+        0.2: "#0044ff",   // Blue (isolated, low-priority residential report)
+        0.4: "#00d5ff",   // Cyan (minor civic issue)
+        0.6: "#00e600",   // Lime (moderate urgency)
+        0.75: "#ffea00",  // Yellow (commercial cluster / medium priority)
+        0.88: "#ff6600",  // Orange (high priority / dense problem area)
+        1.0: "#ff0000",   // Fiery Red (industrial disaster hotspot / heavy traffic bottleneck)
       },
       ...options,
     });

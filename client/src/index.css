@@ -1769,39 +1769,57 @@ body {
   gap: 0.5rem;
 }
 
+/* Clean Segmented Toggle Control [ Heatmap | Pins ] */
+.segmented-control,
 .map-view-toggle {
   display: inline-flex;
   background-color: #e2e8f0;
-  padding: 2px;
+  padding: 3px;
   border-radius: var(--radius);
-  gap: 2px;
+  gap: 3px;
 }
 
+.segmented-btn,
 .view-toggle-option {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   border-radius: 6px;
+  border: none;
   cursor: pointer;
+  background: transparent;
   color: var(--secondary-color);
   transition: all 0.2s ease;
   user-select: none;
   margin-bottom: 0 !important;
 }
 
+.segmented-btn:hover:not(.active),
+.view-toggle-option:hover:not(.active) {
+  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.segmented-btn.active,
+.view-toggle-option.active {
+  background-color: #ffffff;
+  color: var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.segmented-btn:focus-visible {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 1px;
+}
+
 .view-toggle-option input[type="radio"] {
   position: absolute;
   opacity: 0;
   pointer-events: none;
-}
-
-.view-toggle-option.active {
-  background-color: #ffffff;
-  color: var(--primary-color);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Heatmap Legend */
@@ -1832,11 +1850,12 @@ body {
   border-radius: 6px;
   background: linear-gradient(
     to right,
-    #3b82f6 0%,
-    #06b6d4 35%,
-    #10b981 65%,
-    #eab308 85%,
-    #ef4444 100%
+    #0044ff 0%,
+    #00d5ff 20%,
+    #00e600 45%,
+    #ffea00 70%,
+    #ff6600 85%,
+    #ff0000 100%
   );
   margin-bottom: 0.35rem;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -2138,11 +2157,13 @@ body {
     width: 100%;
   }
 
+  .segmented-control,
   .map-view-toggle {
     width: 100%;
     display: flex;
   }
 
+  .segmented-btn,
   .view-toggle-option {
     flex: 1;
     justify-content: center;
