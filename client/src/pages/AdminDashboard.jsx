@@ -55,6 +55,7 @@ const AdminDashboard = () => {
 
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [sortByPriority, setSortByPriority] = useState(false);
 
   // Store per-row remark input state: { [issueId]: "remark text" }
   const [remarks, setRemarks] = useState({});
@@ -70,6 +71,7 @@ const AdminDashboard = () => {
       const params = {};
       if (categoryFilter) params.category = categoryFilter;
       if (statusFilter) params.status = statusFilter;
+      if (sortByPriority) params.sort = "priority";
 
       const res = await api.get("/issues", { params });
       setIssues(res.data.issues || []);
@@ -82,7 +84,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchAllIssues();
-  }, [categoryFilter, statusFilter]);
+  }, [categoryFilter, statusFilter, sortByPriority]);
 
   const handleRemarkChange = (issueId, text) => {
     setRemarks((prev) => ({
@@ -177,6 +179,21 @@ const AdminDashboard = () => {
           </select>
         </div>
 
+        <div className="filter-group sort-toggle-group">
+          <button
+            type="button"
+            className={`btn btn-sm ${sortByPriority ? "btn-primary" : "btn-outline"} sort-toggle-btn`}
+            onClick={() => setSortByPriority((prev) => !prev)}
+            title={
+              sortByPriority
+                ? "Sorted by priority score (highest first)"
+                : "Click to sort by dynamic priority score"
+            }
+          >
+            {sortByPriority ? "⚡ Sorted by Priority" : "🕒 Sort by Priority"}
+          </button>
+        </div>
+
         <div className="filter-count-badge">
           {loading ? "Loading..." : `${issues.length} total ${issues.length === 1 ? "issue" : "issues"}`}
         </div>
@@ -200,6 +217,7 @@ const AdminDashboard = () => {
                 <tr>
                   <th>Title</th>
                   <th>Category</th>
+                  <th>Priority</th>
                   <th>Status</th>
                   <th>Reported By</th>
                   <th>Date</th>
@@ -224,6 +242,15 @@ const AdminDashboard = () => {
                       </td>
 
                       <td className="capitalize">{issue.category.replace("_", " ")}</td>
+
+                      <td className="table-priority-cell">
+                        <span
+                          className="priority-pill"
+                          title="Dynamic priority score (Severity + Upvotes*2 + Age)"
+                        >
+                          ⚡ {issue.priorityScore ?? 0}
+                        </span>
+                      </td>
 
                       <td>
                         <StatusBadge status={issue.status} />

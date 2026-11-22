@@ -2,9 +2,12 @@
 // Handles CRUD operations for civic issues in Bengaluru
 
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
 const Issue = require("../models/Issue");
 const StatusUpdate = require("../models/StatusUpdate");
+const Upvote = require("../models/Upvote");
 const { canTransition } = require("../utils/statusFlow");
+const { calculatePriority } = require("../utils/priority");
 const uploadToCloudinary = require("../utils/uploadToCloudinary");
 
 /**
@@ -119,13 +122,13 @@ const createIssue = async (req, res, next) => {
 };
 
 /**
- * @desc    Get all civic issues (with optional category and status filtering, newest first)
+ * @desc    Get all civic issues (with optional category and status filtering, newest or priority sorted)
  * @route   GET /api/issues
  * @access  Public
  */
 const getIssues = async (req, res, next) => {
   try {
-    const { category, status } = req.query;
+    const { category, status, sort } = req.query;
     const filter = {};
 
     // Apply optional category filter
@@ -138,14 +141,47 @@ const getIssues = async (req, res, next) => {
       filter.status = status;
     }
 
+    // Optional auth: check if user is logged in to populate hasUpvoted
+    let userUpvotedIssueIds = new Set();
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer ")
+    ) {
+      try {
+        const token = req.headers.authorization.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded && decoded.id) {
+          const userUpvotes = await Upvote.find({ user: decoded.id }).select("issue");
+          userUpvotedIssueIds = new Set(
+            userUpvotes.map((u) => u.issue.toString())
+          );
+        }
+      } catch {
+        // Ignore invalid/expired token on public listing
+      }
+    }
+
     // Fetch issues: sort by newest first (-1), populate reportedBy name only
     const issues = await Issue.find(filter)
       .sort({ createdAt: -1 })
       .populate("reportedBy", "name");
 
+    // Attach dynamic priorityScore and hasUpvoted flag to each issue
+    const issuesWithScore = issues.map((issue) => {
+      const obj = issue.toObject();
+      obj.priorityScore = calculatePriority(obj);
+      obj.hasUpvoted = userUpvotedIssueIds.has(obj._id.toString());
+      return obj;
+    });
+
+    // If ?sort=priority is requested, sort descending by priorityScore
+    if (sort === "priority") {
+      issuesWithScore.sort((a, b) => b.priorityScore - a.priorityScore);
+    }
+
     res.status(200).json({
-      count: issues.length,
-      issues,
+      count: issuesWithScore.length,
+      issues: issuesWithScore,
     });
   } catch (error) {
     next(error);
@@ -248,7 +284,7 @@ const getNearbyIssues = async (req, res, next) => {
 };
 
 /**
- * @desc    Get single issue by ID
+ * @desc    Get single issue by ID (with optional auth for hasUpvoted and dynamic priorityScore)
  * @route   GET /api/issues/:id
  * @access  Public
  */
@@ -267,7 +303,33 @@ const getIssueById = async (req, res, next) => {
       return res.status(404).json({ message: "Issue not found" });
     }
 
-    res.status(200).json({ issue });
+    // Optional auth on public route: check if Bearer token is provided
+    let hasUpvoted = false;
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer ")
+    ) {
+      try {
+        const token = req.headers.authorization.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded && decoded.id) {
+          const upvote = await Upvote.findOne({
+            issue: issue._id,
+            user: decoded.id,
+          });
+          hasUpvoted = !!upvote;
+        }
+      } catch {
+        // Route remains public; treat invalid/expired token as unauthenticated
+        hasUpvoted = false;
+      }
+    }
+
+    const issueObj = issue.toObject();
+    issueObj.priorityScore = calculatePriority(issueObj);
+    issueObj.hasUpvoted = hasUpvoted;
+
+    res.status(200).json({ issue: issueObj });
   } catch (error) {
     next(error);
   }
@@ -423,6 +485,104 @@ const getIssueHistory = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Toggle upvote on an issue (atomic increment/decrement)
+ * @route   POST /api/issues/:id/upvote
+ * @access  Private (Protected by JWT)
+ *
+ * Viva Explanation:
+ * 1. Business Logic Rules:
+ *    - Citizens cannot upvote their OWN issues (prevents artificial self-inflation).
+ *    - Citizens cannot upvote RESOLVED issues (prioritization only matters for active work).
+ * 2. Atomic $inc Operator:
+ *    - Uses MongoDB's atomic `$inc: { upvoteCount: 1 }` or `$inc: { upvoteCount: -1 }`.
+ *    - This avoids read-modify-write race conditions where two simultaneous upvotes would
+ *      overwrite each other and corrupt the count.
+ * 3. Compound Unique Index:
+ *    - { issue: 1, user: 1 } on Upvote collection guarantees at the DB level that a citizen
+ *      cannot upvote the same issue twice.
+ */
+const toggleUpvote = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    // 2. Find issue
+    const issue = await Issue.findById(id);
+    if (!issue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    // 3. User cannot upvote their OWN issue
+    if (issue.reportedBy.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        message: "You cannot upvote your own reported issue",
+      });
+    }
+
+    // 4. Cannot upvote a resolved issue
+    if (issue.status === "resolved") {
+      return res.status(400).json({
+        message: "Cannot upvote an issue that has already been resolved",
+      });
+    }
+
+    // 5. Check if the user has already upvoted
+    const existingUpvote = await Upvote.findOne({
+      issue: issue._id,
+      user: req.user._id,
+    });
+
+    if (existingUpvote) {
+      // Toggle OFF: Remove upvote and atomically decrement upvoteCount
+      await Upvote.findByIdAndDelete(existingUpvote._id);
+      const updatedIssue = await Issue.findByIdAndUpdate(
+        issue._id,
+        { $inc: { upvoteCount: -1 } },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        upvoted: false,
+        upvoteCount: Math.max(0, updatedIssue ? updatedIssue.upvoteCount : 0),
+      });
+    } else {
+      // Toggle ON: Create upvote and atomically increment upvoteCount
+      try {
+        await Upvote.create({
+          issue: issue._id,
+          user: req.user._id,
+        });
+      } catch (err) {
+        // If unique compound index collision occurred concurrently
+        if (err.code === 11000) {
+          return res.status(400).json({
+            message: "You have already upvoted this issue",
+          });
+        }
+        throw err;
+      }
+
+      const updatedIssue = await Issue.findByIdAndUpdate(
+        issue._id,
+        { $inc: { upvoteCount: 1 } },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        upvoted: true,
+        upvoteCount: updatedIssue.upvoteCount,
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createIssue,
   getIssues,
@@ -432,4 +592,5 @@ module.exports = {
   updateIssueStatus,
   getIssueHistory,
   getNearbyIssues,
+  toggleUpvote,
 };

@@ -12,6 +12,7 @@ const {
   updateIssueStatus,
   getIssueHistory,
   getNearbyIssues,
+  toggleUpvote,
 } = require("../controllers/issueController");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 const { uploadSingleImage } = require("../middleware/uploadMiddleware");
@@ -33,6 +34,9 @@ router.get("/:id/history", getIssueHistory);
 
 // Public route: Get a single issue by ID
 router.get("/:id", getIssueById);
+
+// Protected route: Toggle upvote on an issue (atomic increment/decrement)
+router.post("/:id/upvote", protect, toggleUpvote);
 
 // Protected route: Report a new civic issue (supports multipart/form-data with optional 'image')
 router.post("/", protect, uploadSingleImage, createIssue);

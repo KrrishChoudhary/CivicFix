@@ -101,6 +101,11 @@ const issueSchema = new mongoose.Schema(
       },
       default: "reported", // All newly created issues start as "reported"
     },
+    upvoteCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     reportedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

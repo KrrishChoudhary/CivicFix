@@ -973,8 +973,10 @@ body {
 
 .detail-tags-row {
   display: flex;
-  gap: 0.75rem;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
@@ -1542,5 +1544,153 @@ body {
   50% {
     opacity: 0.5;
   }
+}
+
+/* Upvote Button & Priority Badges (Step 9c) */
+.upvote-wrapper {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.upvote-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--secondary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.upvote-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background-color: #eff6ff;
+}
+
+.upvote-btn.upvoted {
+  background-color: #eff6ff;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.upvote-btn.upvoted .upvote-arrow {
+  color: var(--primary-color);
+}
+
+.upvote-btn:disabled,
+.upvote-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+/* Small variant (Cards) */
+.upvote-btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+}
+
+.upvote-btn-sm .upvote-arrow {
+  font-size: 0.75rem;
+}
+
+/* Large variant (Detail Page) */
+.upvote-btn-lg {
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  border-radius: var(--radius);
+  gap: 0.5rem;
+}
+
+.upvote-btn-lg .upvote-arrow {
+  font-size: 1rem;
+}
+
+.upvote-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.upvote-inline-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 0.25rem;
+}
+
+/* Detail Page Header Tags & Actions */
+.detail-tags-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.detail-header-upvote {
+  display: flex;
+  align-items: center;
+}
+
+.issue-card-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* Priority Badges */
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.825rem;
+  font-weight: 700;
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  letter-spacing: 0.2px;
+}
+
+.priority-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.table-priority-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sort-toggle-group {
+  margin-left: auto;
+}
+
+.sort-toggle-btn {
+  font-weight: 600;
+  white-space: nowrap;
 }
 

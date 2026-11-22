@@ -8,6 +8,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api/axios";
 import StatusBadge from "../components/StatusBadge";
+import UpvoteButton from "../components/UpvoteButton";
+import { useAuth } from "../context/AuthContext";
 
 // Fix for Vite default marker icon bug
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -36,6 +38,7 @@ const formatDateTime = (dateString) => {
 
 const IssueDetail = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   const [issue, setIssue] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +112,15 @@ const IssueDetail = () => {
   const coords = issue.location?.coordinates;
   const position = coords && coords.length === 2 ? [coords[1], coords[0]] : null;
 
+  // Determine permissions for current user
+  const reportedById = issue.reportedBy?._id || issue.reportedBy;
+  const isOwnIssue = !!(
+    user &&
+    reportedById &&
+    reportedById.toString() === user._id?.toString()
+  );
+  const isResolved = issue.status === "resolved";
+
   return (
     <div className="page-container issue-detail-container">
       {/* Back button */}
@@ -120,8 +132,44 @@ const IssueDetail = () => {
 
       <div className="issue-detail-header-card">
         <div className="detail-tags-row">
-          <span className="issue-category-tag">{issue.category}</span>
-          <StatusBadge status={issue.status} />
+          <div className="detail-tags-left">
+            <span className="issue-category-tag">{issue.category}</span>
+            <StatusBadge status={issue.status} />
+            <span
+              className="priority-badge"
+              title="Dynamic priority score calculated from category severity weight, community upvotes, and issue age"
+            >
+              ⚡ Priority Score: {issue.priorityScore ?? 0}
+            </span>
+          </div>
+
+          <div className="detail-header-upvote">
+            <UpvoteButton
+              issueId={issue._id}
+              initialCount={issue.upvoteCount}
+              initialUpvoted={issue.hasUpvoted}
+              isOwnIssue={isOwnIssue}
+              isResolved={isResolved}
+              size="lg"
+              onUpvoteChange={(newUpvoted, newCount) => {
+                setIssue((prev) => {
+                  if (!prev) return prev;
+                  // Dynamic adjustment: upvote adds 2 points (or 0 if resolved)
+                  const delta = newUpvoted ? 2 : -2;
+                  const newScore =
+                    prev.status === "resolved"
+                      ? 0
+                      : Math.max(0, (prev.priorityScore ?? 0) + delta);
+                  return {
+                    ...prev,
+                    upvoteCount: newCount,
+                    hasUpvoted: newUpvoted,
+                    priorityScore: newScore,
+                  };
+                });
+              }}
+            />
+          </div>
         </div>
 
         <h1 className="detail-title">{issue.title}</h1>

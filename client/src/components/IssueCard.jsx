@@ -3,6 +3,8 @@
 
 import { Link } from "react-router-dom";
 import StatusBadge from "./StatusBadge";
+import UpvoteButton from "./UpvoteButton";
+import { useAuth } from "../context/AuthContext";
 
 // Helper to format category slug into human-readable label
 const formatCategory = (cat) => {
@@ -28,6 +30,17 @@ const formatDate = (dateString) => {
 };
 
 const IssueCard = ({ issue }) => {
+  const { user } = useAuth();
+
+  // Check if current logged-in user reported this issue
+  const reportedById = issue.reportedBy?._id || issue.reportedBy;
+  const isOwnIssue = !!(
+    user &&
+    reportedById &&
+    reportedById.toString() === user._id?.toString()
+  );
+  const isResolved = issue.status === "resolved";
+
   return (
     <Link to={`/issues/${issue._id}`} className="issue-card-link">
       <div className="issue-card">
@@ -56,7 +69,25 @@ const IssueCard = ({ issue }) => {
           )}
 
           <div className="issue-card-footer">
-            <span className="issue-card-date">{formatDate(issue.createdAt)}</span>
+            <div
+              className="issue-card-footer-left"
+              onClick={(e) => {
+                // Prevent card link navigation when clicking inside upvote area
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <UpvoteButton
+                issueId={issue._id}
+                initialCount={issue.upvoteCount}
+                initialUpvoted={issue.hasUpvoted}
+                isOwnIssue={isOwnIssue}
+                isResolved={isResolved}
+                size="sm"
+              />
+              <span className="issue-card-date">{formatDate(issue.createdAt)}</span>
+            </div>
+
             <span className="issue-card-view-btn">View Details →</span>
           </div>
         </div>
