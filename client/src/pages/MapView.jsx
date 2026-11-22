@@ -208,6 +208,7 @@ const MapView = () => {
             key={theme}
             attribution={tileConfig.attribution}
             url={tileConfig.url}
+            className={tileConfig.className}
           />
 
           {/* Conditional rendering based on active view mode */}

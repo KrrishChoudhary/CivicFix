@@ -1173,6 +1173,13 @@ body {
   font-family: inherit !important;
 }
 
+/* Dark Mode Leaflet Tile Filter: Converts standard OpenStreetMap tiles into a clean, high-contrast dark basemap without requiring an external API key */
+[data-theme="dark"] .leaflet-tile-pane,
+[data-theme="dark"] .map-tiles-dark,
+.map-tiles-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
 .leaflet-bar,
 .leaflet-control-zoom {
   border: 1px solid var(--border-color) !important;

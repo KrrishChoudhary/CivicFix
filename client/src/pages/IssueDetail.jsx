@@ -226,6 +226,7 @@ const IssueDetail = () => {
                     key={theme}
                     attribution={tileConfig.attribution}
                     url={tileConfig.url}
+                    className={tileConfig.className}
                   />
                   <Marker position={position}>
                     <Popup>

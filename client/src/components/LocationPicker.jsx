@@ -243,6 +243,7 @@ const LocationPicker = ({ value, onChange }) => {
             key={theme}
             attribution={tileConfig.attribution}
             url={tileConfig.url}
+            className={tileConfig.className}
           />
 
           <MapClickHandler onLocationPick={onChange} />
