@@ -37,13 +37,22 @@ const HeatmapLayer = ({ points = [], options = {} }) => {
   useEffect(() => {
     if (!map) return;
 
-    // Create and add the heatmap layer
-    // Viva note: radius and blur define the spread of the Gaussian blur kernel for each point
+    // Create and add the heatmap layer with a realistic multi-stop thermal gradient
+    // Viva note: radius and blur define the spread of the Gaussian blur kernel for each point.
+    // The gradient matches the UI legend: blue (cool, low priority) -> cyan -> green -> yellow -> fiery red (industrial hotspot).
     const heatLayer = L.heatLayer(points, {
-      radius: 25,
-      blur: 15,
+      radius: 28,
+      blur: 18,
       maxZoom: 17,
-      minOpacity: 0.2,
+      minOpacity: 0.25,
+      gradient: {
+        0.2: "#3b82f6",   // Calm Blue (low-priority / isolated residential report)
+        0.4: "#06b6d4",   // Cyan (minor civic issue)
+        0.6: "#10b981",   // Green (moderate urgency)
+        0.75: "#eab308",  // Yellow / Amber (commercial cluster)
+        0.9: "#f97316",   // Orange (high priority)
+        1.0: "#ef4444",   // Fiery Red (massive industrial / traffic bottleneck hotspot)
+      },
       ...options,
     });
 

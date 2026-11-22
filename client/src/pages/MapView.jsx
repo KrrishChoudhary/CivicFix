@@ -263,18 +263,19 @@ const MapView = () => {
         <div className="heatmap-legend-card">
           <div className="heatmap-legend-header">
             <span className="heatmap-legend-icon">🔥</span>
-            <strong>Hotspot Intensity Legend</strong>
+            <strong>Civic Hotspot Intensity Legend</strong>
           </div>
           <div className="heatmap-gradient-bar"></div>
           <div className="heatmap-gradient-labels">
-            <span>Low Priority (0.2)</span>
-            <span>Moderate Priority</span>
-            <span>High Priority / Clustered (1.0)</span>
+            <span>Low Priority / Residential (0.2)</span>
+            <span>Commercial / Moderate</span>
+            <span>Industrial & Choke Hotspots (1.0)</span>
           </div>
           <p className="heatmap-legend-text">
-            Brighter, warmer areas (yellow and red) indicate a higher concentration or higher
-            priority score of unresolved civic reports (such as dangerous potholes or burst water
-            mains with citizen upvotes). Resolved issues are excluded from the heatmap.
+            Brighter, warmer areas (amber and fiery red) indicate heavy concentrations of high-priority
+            unresolved civic issues (such as heavy truck craters in Peenya Industrial Area or severe
+            drainage choke points at Silk Board with multiple citizen upvotes). Calm blue spots denote
+            isolated, low-priority residential reports. Resolved issues are excluded.
           </p>
         </div>
       )}
