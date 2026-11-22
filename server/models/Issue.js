@@ -106,6 +106,10 @@ const issueSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    isSeeded: {
+      type: Boolean,
+      default: false,
+    },
     reportedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
