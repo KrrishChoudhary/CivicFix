@@ -12,14 +12,29 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 // 2. Initialize the Express application
 const app = express();
 
+// Trust reverse proxy (e.g. Render, Heroku) so req.protocol, req.ip, and secure cookies are preserved
+app.set("trust proxy", 1);
+
 // 3. Connect to MongoDB database
 connectDB();
 
 // 4. Global Middlewares
-// Enable CORS so the React frontend can make API requests
+// Parse CLIENT_URL which can hold one or more comma-separated allowed origins (e.g. local and deployed frontends)
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, Render load-balancer health checks)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS error: Origin ${origin} not allowed`));
+    },
     credentials: true,
   })
 );
