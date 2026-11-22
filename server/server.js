@@ -41,6 +41,10 @@ app.use("/api/auth", authRoutes);
 const issueRoutes = require("./routes/issueRoutes");
 app.use("/api/issues", issueRoutes);
 
+// Admin analytics routes mounted at /api/admin
+const adminRoutes = require("./routes/adminRoutes");
+app.use("/api/admin", adminRoutes);
+
 // 6. Error Handling Middlewares
 // Catch requests to undefined routes (404)
 app.use(notFound);
