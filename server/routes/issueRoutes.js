@@ -11,6 +11,7 @@ const {
   deleteIssue,
   updateIssueStatus,
   getIssueHistory,
+  getNearbyIssues,
 } = require("../controllers/issueController");
 const { protect, adminOnly } = require("../middleware/authMiddleware");
 const { uploadSingleImage } = require("../middleware/uploadMiddleware");
@@ -20,11 +21,12 @@ router.get("/", getIssues);
 
 /**
  * IMPORTANT ROUTING NOTE FOR VIVA:
- * GET /mine must be defined BEFORE GET /:id.
- * If /:id came first, Express would capture the string "mine" as req.params.id,
+ * GET /mine and GET /nearby must be defined BEFORE GET /:id.
+ * If /:id came first, Express would capture the string "nearby" or "mine" as req.params.id,
  * causing an invalid ObjectId CastError or returning a 404.
  */
 router.get("/mine", protect, getMyIssues);
+router.get("/nearby", getNearbyIssues);
 
 // Public route: Get status change audit history for an issue (oldest first)
 router.get("/:id/history", getIssueHistory);

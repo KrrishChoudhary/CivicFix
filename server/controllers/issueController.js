@@ -153,6 +153,101 @@ const getIssues = async (req, res, next) => {
 };
 
 /**
+ * @desc    Find nearby civic issues for duplicate detection using geospatial query
+ * @route   GET /api/issues/nearby
+ * @access  Public
+ */
+const getNearbyIssues = async (req, res, next) => {
+  try {
+    const { latitude, longitude, category, radius } = req.query;
+
+    // 1. Validate required coordinates
+    if (
+      latitude === undefined ||
+      longitude === undefined ||
+      latitude === null ||
+      longitude === null ||
+      latitude === "" ||
+      longitude === ""
+    ) {
+      return res.status(400).json({
+        message: "Latitude and longitude query parameters are required",
+      });
+    }
+
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({
+        message: "Latitude and longitude must be valid numbers",
+      });
+    }
+
+    if (lat < -90 || lat > 90) {
+      return res.status(400).json({
+        message: "Latitude must be between -90 and 90",
+      });
+    }
+
+    if (lng < -180 || lng > 180) {
+      return res.status(400).json({
+        message: "Longitude must be between -180 and 180",
+      });
+    }
+
+    // 2. Parse radius in meters: default 50, maximum 500
+    let maxDistance = 50;
+    if (radius) {
+      const parsedRadius = parseFloat(radius);
+      if (!isNaN(parsedRadius) && parsedRadius > 0) {
+        maxDistance = Math.min(parsedRadius, 500);
+      }
+    }
+
+    /**
+     * Viva Explanation for 2dsphere and $near:
+     * 1. 2dsphere Index: The collection has an index on { location: "2dsphere" }.
+     *    MongoDB uses spatial S2 cell geometry to find points in O(log N) time
+     *    instead of checking every issue in the database.
+     * 2. GeoJSON Specification: Strictly mandates coordinates in [longitude, latitude] order (x, y).
+     * 3. $maxDistance: Specified in meters directly when querying on a 2dsphere index.
+     * 4. Exclude Resolved: status: { $ne: "resolved" } excludes issues that are already fixed.
+     */
+    const query = {
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lng, lat], // GeoJSON order: [longitude, latitude]
+          },
+          $maxDistance: maxDistance,
+        },
+      },
+      status: { $ne: "resolved" },
+    };
+
+    // If category is provided, match only issues with that specific category
+    if (category && typeof category === "string" && category.trim()) {
+      query.category = category.trim();
+    }
+
+    // Return only what the UI needs, limited to 5 results
+    const nearbyIssues = await Issue.find(query)
+      .select("_id title category status imageUrl createdAt")
+      .limit(5);
+
+    res.status(200).json({
+      count: nearbyIssues.length,
+      radius: maxDistance,
+      issues: nearbyIssues,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Get single issue by ID
  * @route   GET /api/issues/:id
  * @access  Public
@@ -336,4 +431,5 @@ module.exports = {
   deleteIssue,
   updateIssueStatus,
   getIssueHistory,
+  getNearbyIssues,
 };

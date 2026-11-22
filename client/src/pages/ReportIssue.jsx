@@ -1,10 +1,11 @@
 // client/src/pages/ReportIssue.jsx
-// Form to report a civic issue with Leaflet map location picker and image upload
+// Form to report a civic issue with Leaflet map location picker, duplicate detection, and image upload
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../api/axios";
 import LocationPicker from "../components/LocationPicker";
+import StatusBadge from "../components/StatusBadge";
 
 const CATEGORIES = [
   { value: "pothole", label: "Pothole (Road Damage)" },
@@ -32,6 +33,45 @@ const ReportIssue = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Duplicate detection state: stores open nearby issues within 50m
+  const [nearbyIssues, setNearbyIssues] = useState([]);
+
+  // Duplicate detection query: calls GET /api/issues/nearby when location and category change
+  useEffect(() => {
+    if (!location || location.lat === undefined || location.lng === undefined || !category) {
+      setNearbyIssues([]);
+      return;
+    }
+
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get("/issues/nearby", {
+          params: {
+            latitude: location.lat,
+            longitude: location.lng,
+            category,
+            radius: 50, // 50 meters
+          },
+        });
+        if (isMounted) {
+          setNearbyIssues(res.data.issues || []);
+        }
+      } catch (err) {
+        // Fail silently without crashing the form
+        console.warn("[Duplicate Detection]:", err.message);
+        if (isMounted) {
+          setNearbyIssues([]);
+        }
+      }
+    }, 400); // 400ms debounce
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [location, category]);
 
   // Handle image file selection with client-side validation
   const handleImageChange = (e) => {
@@ -244,6 +284,40 @@ const ReportIssue = () => {
             <label>Location on Map *</label>
             <LocationPicker value={location} onChange={setLocation} />
           </div>
+
+          {/* Duplicate Detection Warning Banner */}
+          {nearbyIssues.length > 0 && (
+            <div className="nearby-warning-card">
+              <div className="nearby-warning-header">
+                <span className="nearby-warning-icon">⚠️</span>
+                <h4>Similar open issues were reported within 50 m</h4>
+              </div>
+              <p className="nearby-warning-subtext">
+                Please review existing reports to check if this has already been submitted:
+              </p>
+              <ul className="nearby-issues-list">
+                {nearbyIssues.map((item) => (
+                  <li key={item._id} className="nearby-issue-item">
+                    <div className="nearby-issue-info">
+                      <span className="nearby-issue-title">{item.title}</span>
+                      <StatusBadge status={item.status} />
+                    </div>
+                    <Link
+                      to={`/issues/${item._id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nearby-issue-link"
+                    >
+                      View Issue ↗
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <small className="nearby-warning-note">
+                You can still submit your report if this is a separate or new issue.
+              </small>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="form-actions">
