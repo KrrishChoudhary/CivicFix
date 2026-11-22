@@ -33,6 +33,10 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// Authentication routes (register, login, getMe) mounted at /api/auth
+const authRoutes = require("./routes/authRoutes");
+app.use("/api/auth", authRoutes);
+
 // 6. Error Handling Middlewares
 // Catch requests to undefined routes (404)
 app.use(notFound);
