@@ -10,6 +10,8 @@ import api from "../api/axios";
 import StatusBadge from "../components/StatusBadge";
 import UpvoteButton from "../components/UpvoteButton";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { getMapTileConfig } from "../utils/mapTiles";
 
 // Fix for Vite default marker icon bug
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -39,6 +41,8 @@ const formatDateTime = (dateString) => {
 const IssueDetail = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const tileConfig = getMapTileConfig(theme);
   const [issue, setIssue] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -219,8 +223,9 @@ const IssueDetail = () => {
                   className="detail-mini-map"
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    key={theme}
+                    attribution={tileConfig.attribution}
+                    url={tileConfig.url}
                   />
                   <Marker position={position}>
                     <Popup>

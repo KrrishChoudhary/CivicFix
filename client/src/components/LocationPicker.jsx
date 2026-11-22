@@ -6,6 +6,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaf
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { searchPlaces } from "../api/geocode";
+import { useTheme } from "../context/ThemeContext";
+import { getMapTileConfig } from "../utils/mapTiles";
 
 // Fix for Vite default marker icon bug:
 // Leaflet dynamically resolves marker image assets using relative paths at runtime.
@@ -48,6 +50,9 @@ const MapClickHandler = ({ onLocationPick }) => {
  * @param {Function} props.onChange - Callback when location is selected/dragged/searched
  */
 const LocationPicker = ({ value, onChange }) => {
+  const { theme } = useTheme();
+  const tileConfig = getMapTileConfig(theme);
+
   const [geoError, setGeoError] = useState("");
   const [gettingLocation, setGettingLocation] = useState(false);
 
@@ -235,8 +240,9 @@ const LocationPicker = ({ value, onChange }) => {
           ref={mapRef}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            key={theme}
+            attribution={tileConfig.attribution}
+            url={tileConfig.url}
           />
 
           <MapClickHandler onLocationPick={onChange} />

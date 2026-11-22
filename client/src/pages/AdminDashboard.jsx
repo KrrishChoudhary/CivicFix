@@ -19,6 +19,7 @@ import {
   Legend,
 } from "recharts";
 import api from "../api/axios";
+import { useTheme } from "../context/ThemeContext";
 import StatusBadge from "../components/StatusBadge";
 
 // Linear status progression mapping
@@ -52,12 +53,68 @@ const STATUSES = [
   { value: "resolved", label: "Resolved" },
 ];
 
-// Color mapping matching StatusBadge styling
-const STATUS_CHART_COLORS = {
-  reported: "#f59e0b", // Amber
-  verified: "#3b82f6", // Blue
-  in_progress: "#8b5cf6", // Purple
-  resolved: "#10b981", // Emerald Green
+// Theme-aware color palettes for Recharts ensuring high-contrast readability
+const THEME_CHART_CONFIG = {
+  light: {
+    gridStroke: "#e2e8f0",
+    tickFill: "#64748b",
+    tooltipBg: "#ffffff",
+    tooltipBorder: "#cbd5e1",
+    tooltipText: "#0f172a",
+    barColor: "#2563eb",
+    lineColor: "#2563eb",
+    statusColors: {
+      reported: "#f59e0b",
+      verified: "#3b82f6",
+      in_progress: "#8b5cf6",
+      resolved: "#10b981",
+    },
+  },
+  dark: {
+    gridStroke: "#26334d",
+    tickFill: "#94a3b8",
+    tooltipBg: "#151c2c",
+    tooltipBorder: "#2e3e5c",
+    tooltipText: "#f1f5f9",
+    barColor: "#3b82f6",
+    lineColor: "#60a5fa",
+    statusColors: {
+      reported: "#fbbf24",
+      verified: "#60a5fa",
+      in_progress: "#a78bfa",
+      resolved: "#34d399",
+    },
+  },
+  ocean: {
+    gridStroke: "#17425f",
+    tickFill: "#7dd3fc",
+    tooltipBg: "#0c2538",
+    tooltipBorder: "#1e4a66",
+    tooltipText: "#f0f9ff",
+    barColor: "#06b6d4",
+    lineColor: "#38bdf8",
+    statusColors: {
+      reported: "#facc15",
+      verified: "#38bdf8",
+      in_progress: "#818cf8",
+      resolved: "#2dd4bf",
+    },
+  },
+  sunset: {
+    gridStroke: "#4a2254",
+    tickFill: "#fda4af",
+    tooltipBg: "#241429",
+    tooltipBorder: "#4a2254",
+    tooltipText: "#fff1f2",
+    barColor: "#f43f5e",
+    lineColor: "#fb7185",
+    statusColors: {
+      reported: "#fb923c",
+      verified: "#f472b6",
+      in_progress: "#c084fc",
+      resolved: "#4ade80",
+    },
+  },
 };
 
 const CATEGORY_DISPLAY_NAMES = {
@@ -99,6 +156,9 @@ const formatDayTick = (dateStr) => {
 };
 
 const AdminDashboard = () => {
+  const { theme } = useTheme();
+  const chartTheme = THEME_CHART_CONFIG[theme] || THEME_CHART_CONFIG.light;
+
   // Table state
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -315,24 +375,25 @@ const AdminDashboard = () => {
                       data={categoryChartData}
                       margin={{ top: 10, right: 15, left: -15, bottom: 20 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.gridStroke} />
                       <XAxis
                         dataKey="name"
-                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        tick={{ fontSize: 11, fill: chartTheme.tickFill }}
                         interval={0}
                         angle={-15}
                         textAnchor="end"
                       />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: chartTheme.tickFill }} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#ffffff",
+                          backgroundColor: chartTheme.tooltipBg,
+                          borderColor: chartTheme.tooltipBorder,
+                          color: chartTheme.tooltipText,
                           borderRadius: "8px",
-                          border: "1px solid #e2e8f0",
                           boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                         }}
                       />
-                      <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} name="Issues" />
+                      <Bar dataKey="count" fill={chartTheme.barColor} radius={[4, 4, 0, 0]} name="Issues" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -360,22 +421,23 @@ const AdminDashboard = () => {
                           {statusChartData.map((entry) => (
                             <Cell
                               key={entry.statusKey}
-                              fill={STATUS_CHART_COLORS[entry.statusKey] || "#94a3b8"}
+                              fill={chartTheme.statusColors[entry.statusKey] || chartTheme.tickFill}
                             />
                           ))}
                         </Pie>
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#ffffff",
+                            backgroundColor: chartTheme.tooltipBg,
+                            borderColor: chartTheme.tooltipBorder,
+                            color: chartTheme.tooltipText,
                             borderRadius: "8px",
-                            border: "1px solid #e2e8f0",
                             boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                           }}
                         />
                         <Legend
                           verticalAlign="bottom"
                           iconType="circle"
-                          wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
+                          wrapperStyle={{ fontSize: "12px", paddingTop: "8px", color: chartTheme.tickFill }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -392,28 +454,29 @@ const AdminDashboard = () => {
                       data={trendChartData}
                       margin={{ top: 10, right: 20, left: -15, bottom: 10 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.gridStroke} />
                       <XAxis
                         dataKey="displayDate"
-                        tick={{ fontSize: 11, fill: "#64748b" }}
+                        tick={{ fontSize: 11, fill: chartTheme.tickFill }}
                         minTickGap={25}
                       />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: chartTheme.tickFill }} />
                       <Tooltip
                         labelFormatter={(label) => `Date: ${label}`}
                         contentStyle={{
-                          backgroundColor: "#ffffff",
+                          backgroundColor: chartTheme.tooltipBg,
+                          borderColor: chartTheme.tooltipBorder,
+                          color: chartTheme.tooltipText,
                           borderRadius: "8px",
-                          border: "1px solid #e2e8f0",
                           boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                         }}
                       />
                       <Line
                         type="monotone"
                         dataKey="count"
-                        stroke="#2563eb"
+                        stroke={chartTheme.lineColor}
                         strokeWidth={2.5}
-                        dot={{ r: 3, fill: "#2563eb" }}
+                        dot={{ r: 3, fill: chartTheme.lineColor }}
                         activeDot={{ r: 5 }}
                         name="New Issues"
                       />

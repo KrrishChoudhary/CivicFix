@@ -1,8 +1,9 @@
 // client/src/components/Navbar.jsx
-// Top navigation bar for CivicFix with React Router NavLink active indicators
+// Top navigation bar for CivicFix with React Router NavLink active indicators and ThemeSwitcher
 
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 const Navbar = () => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -64,6 +65,9 @@ const Navbar = () => {
               </NavLink>
             </>
           )}
+
+          {/* Compact visual theme switcher */}
+          <ThemeSwitcher />
         </div>
       </div>
     </nav>

@@ -8,6 +8,8 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../api/axios";
+import { useTheme } from "../context/ThemeContext";
+import { getMapTileConfig } from "../utils/mapTiles";
 import StatusBadge from "../components/StatusBadge";
 import HeatmapLayer from "../components/HeatmapLayer";
 
@@ -44,6 +46,9 @@ const STATUSES = [
 ];
 
 const MapView = () => {
+  const { theme } = useTheme();
+  const tileConfig = getMapTileConfig(theme);
+
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -200,8 +205,9 @@ const MapView = () => {
           className="public-leaflet-map"
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            key={theme}
+            attribution={tileConfig.attribution}
+            url={tileConfig.url}
           />
 
           {/* Conditional rendering based on active view mode */}
