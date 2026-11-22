@@ -27,6 +27,10 @@ const Navbar = () => {
 
           {isAuthenticated ? (
             <>
+              <Link to="/report" className="nav-item">
+                Report Issue
+              </Link>
+
               <Link to="/dashboard" className="nav-item">
                 Dashboard
               </Link>

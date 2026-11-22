@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import ReportIssue from "./pages/ReportIssue";
 import NotFound from "./pages/NotFound";
 
 function App() {
@@ -19,6 +20,14 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route
+            path="/report"
+            element={
+              <ProtectedRoute>
+                <ReportIssue />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={

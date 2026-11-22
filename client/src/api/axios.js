@@ -9,9 +9,6 @@ import axios from "axios";
  */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 /**
@@ -23,6 +20,8 @@ const api = axios.create({
  * Instead of manually attaching headers in every component or API call,
  * an Axios interceptor centralizes token attachment. Whenever a request is made,
  * it checks localStorage. If a token exists, it sets `Authorization: Bearer <token>`.
+ * Note: We intentionally avoid hardcoding Content-Type so Axios/browser automatically
+ * sets "multipart/form-data; boundary=..." for FormData and "application/json" for objects.
  */
 api.interceptors.request.use(
   (config) => {

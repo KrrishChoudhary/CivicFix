@@ -1,6 +1,7 @@
 // client/src/pages/Dashboard.jsx
 // Protected User Dashboard
 
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Dashboard = () => {
@@ -16,6 +17,12 @@ const Dashboard = () => {
             {user?.role}
           </span>
         </p>
+
+        <div className="dashboard-actions">
+          <Link to="/report" className="btn btn-primary">
+            + Report a Civic Issue
+          </Link>
+        </div>
       </div>
 
       <div className="dashboard-card">
