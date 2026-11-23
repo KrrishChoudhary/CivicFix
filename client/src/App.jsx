@@ -3,6 +3,7 @@
 
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
@@ -55,6 +56,7 @@ function App() {
           </Routes>
         </ErrorBoundary>
       </main>
+      <Footer />
     </div>
   );
 }

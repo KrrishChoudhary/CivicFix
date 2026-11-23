@@ -21,6 +21,9 @@ import {
 import api from "../api/axios";
 import { useTheme } from "../context/ThemeContext";
 import StatusBadge from "../components/StatusBadge";
+import Loader from "../components/Loader";
+import EmptyState from "../components/EmptyState";
+import { CATEGORY_OPTIONS, getCategoryMeta } from "../utils/categoryMeta";
 
 // Linear status progression mapping
 const NEXT_ALLOWED_STATUS = {
@@ -113,6 +116,21 @@ const THEME_CHART_CONFIG = {
       verified: "#f472b6",
       in_progress: "#c084fc",
       resolved: "#4ade80",
+    },
+  },
+  namma: {
+    gridStroke: "#e4decb",
+    tickFill: "#57534e",
+    tooltipBg: "#ffffff",
+    tooltipBorder: "#d4ceb8",
+    tooltipText: "#18181b",
+    barColor: "#d97706",
+    lineColor: "#dc2626",
+    statusColors: {
+      reported: "#d97706",
+      verified: "#2563eb",
+      in_progress: "#8b5cf6",
+      resolved: "#16a34a",
     },
   },
 };
@@ -315,14 +333,13 @@ const AdminDashboard = () => {
         <h2 className="analytics-section-title">📊 Operational Overview</h2>
 
         {statsLoading ? (
-          <div className="loading-container" style={{ minHeight: "150px" }}>
-            <div className="spinner"></div>
-            <p>Loading analytics data...</p>
-          </div>
+          <Loader message="Loading municipal analytics..." minHeight="160px" />
         ) : !stats || stats.totals?.total === 0 ? (
-          <div className="empty-state-card" style={{ marginBottom: "2rem" }}>
-            <p>No civic issues recorded yet to compute analytics charts.</p>
-          </div>
+          <EmptyState
+            title="No civic data recorded yet"
+            message="Once citizens report issues across Bengaluru wards, live statistical charts and status funnels will appear here."
+            className="mb-4"
+          />
         ) : (
           <>
             {/* Summary KPI Metric Cards */}
@@ -498,9 +515,9 @@ const AdminDashboard = () => {
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
-            {CATEGORIES.map((c) => (
+            {CATEGORY_OPTIONS.map((c) => (
               <option key={c.value} value={c.value}>
-                {c.label}
+                {c.icon} {c.label} {c.kannada ? `· ${c.kannada}` : ""}
               </option>
             ))}
           </select>
@@ -544,14 +561,12 @@ const AdminDashboard = () => {
       {/* Issues Table */}
       <div className="admin-table-card">
         {loading ? (
-          <div className="loading-container" style={{ minHeight: "200px" }}>
-            <div className="spinner"></div>
-            <p>Loading issue records...</p>
-          </div>
+          <Loader message="Loading issue records..." minHeight="200px" />
         ) : issues.length === 0 ? (
-          <div className="empty-state-card">
-            <p>No issues found matching the selected filters.</p>
-          </div>
+          <EmptyState
+            title="No issues found"
+            message="No issue records match your current filter parameters. Time for a filter coffee!"
+          />
         ) : (
           <div className="table-responsive">
             <table className="admin-table">
@@ -583,7 +598,25 @@ const AdminDashboard = () => {
                         )}
                       </td>
 
-                      <td className="capitalize">{issue.category.replace("_", " ")}</td>
+                      <td>
+                        {(() => {
+                          const catMeta = getCategoryMeta(issue.category);
+                          return (
+                            <span
+                              className="issue-category-tag"
+                              style={{
+                                borderColor: `${catMeta.color}40`,
+                                backgroundColor: `${catMeta.color}15`,
+                                fontSize: "0.78rem",
+                                padding: "2px 8px",
+                              }}
+                            >
+                              {catMeta.icon} {catMeta.label}{" "}
+                              <small style={{ opacity: 0.85 }}>· {catMeta.kannada}</small>
+                            </span>
+                          );
+                        })()}
+                      </td>
 
                       <td className="table-priority-cell">
                         <span

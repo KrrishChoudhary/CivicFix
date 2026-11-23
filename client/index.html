@@ -5,12 +5,16 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CivicFix - Bengaluru Civic Issue Reporter</title>
+    <!-- Google Fonts: Noto Sans Kannada & System font fallback for authentic Bengaluru touches -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <!-- Prevent flash of unstyled theme by applying data-theme immediately from localStorage / OS preference -->
     <script>
       (function () {
         try {
           var saved = localStorage.getItem("civicfix_theme");
-          var valid = ["light", "dark", "ocean", "sunset"];
+          var valid = ["light", "dark", "ocean", "sunset", "namma"];
           if (saved && valid.indexOf(saved) !== -1) {
             document.documentElement.setAttribute("data-theme", saved);
           } else {

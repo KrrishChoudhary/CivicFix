@@ -5,18 +5,7 @@ import { Link } from "react-router-dom";
 import StatusBadge from "./StatusBadge";
 import UpvoteButton from "./UpvoteButton";
 import { useAuth } from "../context/AuthContext";
-
-// Helper to format category slug into human-readable label
-const formatCategory = (cat) => {
-  const map = {
-    pothole: "Pothole",
-    garbage: "Garbage",
-    streetlight: "Streetlight",
-    water_leak: "Water Leak",
-    other: "Other",
-  };
-  return map[cat] || cat;
-};
+import { getCategoryMeta } from "../utils/categoryMeta";
 
 // Helper to format date string
 const formatDate = (dateString) => {
@@ -40,6 +29,7 @@ const IssueCard = ({ issue }) => {
     reportedById.toString() === user._id?.toString()
   );
   const isResolved = issue.status === "resolved";
+  const catMeta = getCategoryMeta(issue.category);
 
   return (
     <Link to={`/issues/${issue._id}`} className="issue-card-link">
@@ -56,7 +46,19 @@ const IssueCard = ({ issue }) => {
 
         <div className="issue-card-body">
           <div className="issue-card-tags">
-            <span className="issue-category-tag">{formatCategory(issue.category)}</span>
+            <span
+              className="issue-category-tag"
+              style={{
+                borderColor: `${catMeta.color}44`,
+                backgroundColor: `${catMeta.color}15`,
+              }}
+            >
+              <span className="cat-icon" aria-hidden="true">{catMeta.icon}</span>{" "}
+              <span className="cat-label">{catMeta.label}</span>{" "}
+              <span className="cat-kannada-sub" title={catMeta.kannadaTranslit}>
+                · {catMeta.kannada}
+              </span>
+            </span>
             <StatusBadge status={issue.status} />
           </div>
 

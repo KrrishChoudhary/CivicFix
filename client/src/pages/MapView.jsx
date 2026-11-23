@@ -12,6 +12,9 @@ import { useTheme } from "../context/ThemeContext";
 import { getMapTileConfig } from "../utils/mapTiles";
 import StatusBadge from "../components/StatusBadge";
 import HeatmapLayer from "../components/HeatmapLayer";
+import Loader from "../components/Loader";
+import EmptyState from "../components/EmptyState";
+import { CATEGORY_OPTIONS, getCategoryMeta } from "../utils/categoryMeta";
 
 // Fix for Vite default marker icon bug
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -162,9 +165,9 @@ const MapView = () => {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {CATEGORIES.map((c) => (
+            {CATEGORY_OPTIONS.map((c) => (
               <option key={c.value} value={c.value}>
-                {c.label}
+                {c.icon} {c.label} {c.kannada ? `· ${c.kannada}` : ""}
               </option>
             ))}
           </select>
@@ -220,6 +223,7 @@ const MapView = () => {
               const coords = issue.location?.coordinates;
               if (!coords || coords.length !== 2) return null;
               const position = [coords[1], coords[0]];
+              const catMeta = getCategoryMeta(issue.category);
 
               return (
                 <Marker key={issue._id} position={position}>
@@ -234,7 +238,16 @@ const MapView = () => {
                       )}
 
                       <div className="popup-tags">
-                        <span className="popup-category">{issue.category}</span>
+                        <span
+                          className="popup-category"
+                          style={{
+                            color: catMeta.color,
+                            borderColor: `${catMeta.color}40`,
+                            backgroundColor: `${catMeta.color}15`,
+                          }}
+                        >
+                          {catMeta.icon} {catMeta.label} · {catMeta.kannada}
+                        </span>
                         <StatusBadge status={issue.status} />
                       </div>
 
@@ -287,21 +300,19 @@ const MapView = () => {
 
       {/* Empty State Message */}
       {!loading && (viewMode === "heatmap" ? heatmapPoints.length === 0 : issues.length === 0) && (
-        <div className="empty-state-card">
-          <p>📍 No active civic issues found matching the selected filters.</p>
-          {(category || status) && (
-            <button
-              onClick={() => {
-                setCategory("");
-                setStatus("");
-              }}
-              className="btn btn-outline btn-sm"
-              style={{ marginTop: "0.5rem" }}
-            >
-              Reset Filters
-            </button>
-          )}
-        </div>
+        <EmptyState
+          title="No civic issues found"
+          message="No active reports match your selected category or status filters. Time for a filter coffee, or reset your filters."
+          actionLabel={category || status ? "Reset Filters" : undefined}
+          onAction={
+            category || status
+              ? () => {
+                  setCategory("");
+                  setStatus("");
+                }
+              : undefined
+          }
+        />
       )}
     </div>
   );

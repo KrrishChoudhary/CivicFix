@@ -1,12 +1,12 @@
 // client/src/context/ThemeContext.jsx
-// Theme management context supporting Light, Dark, Ocean, and Sunset themes
+// Theme management context supporting Light, Dark, Ocean, Sunset, and Namma themes
 // Persists selection to localStorage and defaults to OS preference (prefers-color-scheme)
 
 import { createContext, useContext, useState, useEffect } from "react";
 
 const ThemeContext = createContext();
 
-const VALID_THEMES = ["light", "dark", "ocean", "sunset"];
+const VALID_THEMES = ["light", "dark", "ocean", "sunset", "namma"];
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => {

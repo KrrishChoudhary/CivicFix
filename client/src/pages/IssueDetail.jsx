@@ -12,6 +12,9 @@ import UpvoteButton from "../components/UpvoteButton";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getMapTileConfig } from "../utils/mapTiles";
+import Loader from "../components/Loader";
+import AutoRickshaw from "../components/illustrations/AutoRickshaw";
+import { getCategoryMeta } from "../utils/categoryMeta";
 
 // Fix for Vite default marker icon bug
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -80,9 +83,8 @@ const IssueDetail = () => {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading issue details...</p>
+      <div className="page-container">
+        <Loader message="Loading civic issue details..." minHeight="300px" />
       </div>
     );
   }
@@ -90,11 +92,18 @@ const IssueDetail = () => {
   if (notFound) {
     return (
       <div className="page-container not-found-container">
-        <h2>Issue Not Found</h2>
-        <p>The civic issue you are looking for does not exist or may have been removed.</p>
-        <Link to="/map" className="btn btn-primary">
-          Back to Public Map
-        </Link>
+        <div className="not-found-card">
+          <div className="not-found-illustration">
+            <AutoRickshaw width={90} height={60} />
+          </div>
+          <h2>Issue Not Found</h2>
+          <p>
+            The civic issue you are looking for does not exist or may have been resolved and closed.
+          </p>
+          <Link to="/map" className="btn btn-primary" style={{ marginTop: "1rem" }}>
+            Back to Public Map
+          </Link>
+        </div>
       </div>
     );
   }
@@ -124,6 +133,7 @@ const IssueDetail = () => {
     reportedById.toString() === user._id?.toString()
   );
   const isResolved = issue.status === "resolved";
+  const catMeta = getCategoryMeta(issue.category);
 
   return (
     <div className="page-container issue-detail-container">
@@ -137,7 +147,16 @@ const IssueDetail = () => {
       <div className="issue-detail-header-card">
         <div className="detail-tags-row">
           <div className="detail-tags-left">
-            <span className="issue-category-tag">{issue.category}</span>
+            <span
+              className="issue-category-tag"
+              style={{
+                borderColor: `${catMeta.color}44`,
+                backgroundColor: `${catMeta.color}15`,
+              }}
+            >
+              <span>{catMeta.icon}</span> <span>{catMeta.label}</span>{" "}
+              <span className="cat-kannada-sub">· {catMeta.kannada}</span>
+            </span>
             <StatusBadge status={issue.status} />
             <span
               className="priority-badge"

@@ -54,7 +54,8 @@
   --status-resolved-text: #065f46;
   --status-resolved-border: #a7f3d0;
 
-  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-family: "Noto Sans Kannada", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-kannada: "Noto Sans Kannada", sans-serif;
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --radius: 8px;
@@ -217,6 +218,60 @@
   --status-resolved-bg: rgba(74, 222, 128, 0.22);
   --status-resolved-text: #bbf7d0;
   --status-resolved-border: rgba(74, 222, 128, 0.45);
+}
+
+/* Namma Bengaluru Theme: Inspired by Bengaluru Auto-Rickshaws & Karnataka Flag */
+[data-theme="namma"] {
+  --primary-color: #b45309;       /* Deep warm auto-amber for accessible high-contrast text & buttons */
+  --primary-hover: #92400e;
+  --secondary-color: #57534e;
+  --bg-color: #faf6ec;            /* Authentic warm South Indian filter-coffee cream background */
+  --card-bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f4efe2;
+  --text-main: #18181b;           /* Deep auto-chassis charcoal/black */
+  --text: #18181b;
+  --text-muted: #57534e;
+  --border-color: #e4decb;
+  --border-light: #f1ebd8;
+  --input-bg: #ffffff;
+  --input-border: #d4ceb8;
+  --input-text: #18181b;
+  --input-focus-border: #d97706;
+  --accent: #d97706;              /* Warm auto-rickshaw yellow */
+  --accent-2: #dc2626;            /* Karnataka flag red */
+  --accent-glow: rgba(217, 119, 6, 0.32);
+  --hover-bg: rgba(217, 119, 6, 0.12);
+  --table-header-bg: #f4efe2;
+  --table-hover-bg: #ede5d2;
+  --tag-bg: #f4efe2;
+  --tag-text: #292524;
+  --modal-overlay-bg: rgba(24, 24, 27, 0.65);
+
+  --danger-color: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --success-color: #16a34a;
+  --success-bg: #f0fdf4;
+  --warning-color: #d97706;
+  --warning-bg: #fffbeb;
+
+  /* Status Badges */
+  --status-reported-bg: #fef3c7;
+  --status-reported-text: #92400e;
+  --status-reported-border: #fde68a;
+
+  --status-verified-bg: #fee2e2;
+  --status-verified-text: #991b1b;
+  --status-verified-border: #fecaca;
+
+  --status-in-progress-bg: #fef08a;
+  --status-in-progress-text: #854d0e;
+  --status-in-progress-border: #fde047;
+
+  --status-resolved-bg: #dcfce7;
+  --status-resolved-text: #166534;
+  --status-resolved-border: #bbf7d0;
 }
 
 * {
@@ -2504,6 +2559,571 @@ body {
   .auth-card {
     padding: 1.5rem 1.25rem;
   }
+
+  .stats-grid,
+  .how-it-works-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-headline {
+    font-size: 1.85rem;
+  }
+}
+
+/* ========================================================
+   Bengaluru Identity, Namma Styling & Kannada Typography
+   ======================================================== */
+
+.cat-kannada-sub {
+  font-family: var(--font-kannada);
+  font-size: 0.82em;
+  opacity: 0.88;
+  font-weight: 500;
+}
+
+.label-with-kannada-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.kannada-field-label {
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 600;
+  font-family: var(--font-kannada);
+}
+
+.category-kannada-hint {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* Home Page Hero Section */
+.home-page-container {
+  max-width: 1060px;
+  margin: 0 auto;
+}
+
+.home-hero-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 3rem 2rem 1.25rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-kannada-pill {
+  display: inline-block;
+  padding: 0.35rem 1rem;
+  background-color: var(--hover-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  font-family: var(--font-kannada);
+  margin-bottom: 1.2rem;
+  letter-spacing: 0.2px;
+}
+
+.hero-headline {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  letter-spacing: -0.5px;
+}
+
+.hero-headline span {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 720px;
+  margin: 0 auto 2rem auto;
+  line-height: 1.6;
+}
+
+.hero-cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.25rem;
+}
+
+.btn-lg {
+  padding: 0.85rem 1.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+/* Road Line & Animated Auto-Rickshaw */
+.hero-road-container {
+  position: relative;
+  width: 100%;
+  height: 52px;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.hero-road-line {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--border-color),
+    var(--border-color) 12px,
+    transparent 12px,
+    transparent 22px
+  );
+}
+
+.hero-auto-driver {
+  position: absolute;
+  bottom: 6px;
+  left: -80px;
+  animation: autoDriveAcross 14s linear infinite;
+  will-change: transform;
+}
+
+@keyframes autoDriveAcross {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(100vw + 160px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-auto-driver {
+    animation: none;
+    left: calc(50% - 34px);
+  }
+}
+
+/* Live Civic Stats Section */
+.live-stats-section {
+  margin-bottom: 2.75rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.stat-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  box-shadow: var(--shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stat-icon-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-total-icon {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.stat-open-icon {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.stat-resolved-icon {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-top: 3px;
+}
+
+.stat-kannada-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-kannada);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.stat-skeleton {
+  width: 70px;
+  height: 30px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border-color) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* How It Works Section */
+.how-it-works-section {
+  margin-bottom: 3.5rem;
+}
+
+.section-title-wrap {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.section-title-wrap h2 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  font-size: 0.98rem;
+}
+
+.how-it-works-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.step-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1.75rem 1.5rem;
+  position: relative;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.step-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border-color);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.step-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.2rem;
+}
+
+.step-kannada-tag {
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 700;
+  font-family: var(--font-kannada);
+  margin-bottom: 0.65rem;
+}
+
+.step-card p {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.home-skyline-footer {
+  margin-top: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  opacity: 0.75;
+}
+
+/* Bengaluru Loader Component */
+.bengaluru-loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.loader-track {
+  position: relative;
+  width: 140px;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.loader-auto-bounce {
+  animation: autoBounce 1.2s ease-in-out infinite;
+}
+
+@keyframes autoBounce {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-4px) rotate(-1.5deg);
+  }
+  75% {
+    transform: translateY(-2px) rotate(1.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-auto-bounce {
+    animation: none;
+  }
+}
+
+.loader-road-line {
+  width: 100%;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--border-color),
+    var(--border-color) 8px,
+    transparent 8px,
+    transparent 14px
+  );
+  margin-top: 2px;
+}
+
+.loader-message-text {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  animation: fadeInMsg 300ms ease;
+}
+
+@keyframes fadeInMsg {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bengaluru Empty State Component */
+.bengaluru-empty-state-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.empty-state-icon-wrapper {
+  margin-bottom: 1rem;
+}
+
+.empty-state-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+
+.empty-state-message {
+  font-size: 0.94rem;
+  color: var(--text-muted);
+  max-width: 440px;
+  line-height: 1.55;
+}
+
+.empty-state-action {
+  margin-top: 1.25rem;
+}
+
+/* Site Footer */
+.app-footer {
+  margin-top: auto;
+  background-color: var(--surface);
+  border-top: 1px solid var(--border-color);
+  position: relative;
+}
+
+.footer-skyline-container {
+  width: 100%;
+  opacity: 0.35;
+  margin-bottom: -4px;
+}
+
+.footer-content-bar {
+  border-top: 1px solid var(--border-light);
+  padding: 1rem 1.5rem;
+}
+
+.footer-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.footer-brand {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.footer-brand span {
+  color: var(--accent);
+}
+
+.footer-kannada-tagline {
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: var(--font-kannada);
+}
+
+.footer-nav-links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.footer-link {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.footer-link:hover {
+  color: var(--accent);
+}
+
+/* Not Found Silk Board Card */
+.not-found-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  max-width: 580px;
+  margin: 2rem auto;
+}
+
+.not-found-illustration {
+  margin-bottom: 1.25rem;
+}
+
+.not-found-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.not-found-subtitle {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+.not-found-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 

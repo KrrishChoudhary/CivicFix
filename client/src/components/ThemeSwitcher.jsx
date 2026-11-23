@@ -1,6 +1,6 @@
 // client/src/components/ThemeSwitcher.jsx
 // Compact, accessible theme switcher component for CivicFix navbar
-// Supports Light, Dark, Ocean, and Sunset themes with keyboard accessibility and mobile responsiveness
+// Supports Light, Dark, Ocean, Sunset, and Namma themes with keyboard accessibility and mobile responsiveness
 
 import { useTheme } from "../context/ThemeContext";
 
@@ -9,6 +9,7 @@ const THEMES = [
   { id: "dark", label: "Dark", icon: "🌙" },
   { id: "ocean", label: "Ocean", icon: "🌊" },
   { id: "sunset", label: "Sunset", icon: "🌅" },
+  { id: "namma", label: "Namma", icon: "🛺" },
 ];
 
 const ThemeSwitcher = () => {

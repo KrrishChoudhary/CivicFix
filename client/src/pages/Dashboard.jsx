@@ -6,6 +6,9 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import IssueCard from "../components/IssueCard";
+import Loader from "../components/Loader";
+import EmptyState from "../components/EmptyState";
+import FilterCoffee from "../components/illustrations/FilterCoffee";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -37,7 +40,7 @@ const Dashboard = () => {
       {/* Header with profile overview */}
       <div className="dashboard-header-card">
         <div className="dashboard-header-main">
-          <h1>Welcome, {user?.name}!</h1>
+          <h1>ನಮಸ್ಕಾರ (Namaskara), {user?.name}!</h1>
           <p className="dashboard-subtitle">
             Role:{" "}
             <span className={`badge badge-${user?.role || "citizen"}`}>
@@ -69,21 +72,15 @@ const Dashboard = () => {
         </div>
 
         {loading ? (
-          <div className="loading-container" style={{ minHeight: "180px" }}>
-            <div className="spinner"></div>
-            <p>Loading your reported issues...</p>
-          </div>
+          <Loader message="Fetching your reported civic issues..." minHeight="200px" />
         ) : myIssues.length === 0 ? (
-          <div className="empty-state-card">
-            <div className="empty-icon">📋</div>
-            <h3>No Issues Reported Yet</h3>
-            <p>
-              Have you spotted a pothole, overflowing garbage bin, or broken streetlight in your neighborhood?
-            </p>
-            <Link to="/report" className="btn btn-primary" style={{ marginTop: "1rem" }}>
-              Report Your First Issue
-            </Link>
-          </div>
+          <EmptyState
+            icon={<FilterCoffee width={64} height={64} />}
+            title="No issues reported yet"
+            message="Looks like your ward is in great shape! Time for a hot filter coffee. If you spot a pothole or dark streetlight later, report it here."
+            actionLabel="+ Report Your First Issue"
+            actionTo="/report"
+          />
         ) : (
           <div className="issues-grid">
             {myIssues.map((issue) => (

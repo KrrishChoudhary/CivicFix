@@ -48,7 +48,7 @@ const Navbar = () => {
               )}
 
               <span className="nav-user-greeting">
-                Hello, <strong>{user?.name}</strong>
+                ನಮಸ್ಕಾರ (Namaskara), <strong>{user?.name}</strong>
               </span>
 
               <button onClick={handleLogout} className="btn btn-outline btn-sm">

@@ -7,14 +7,7 @@ import api from "../api/axios";
 import { reverseGeocode } from "../api/geocode";
 import LocationPicker from "../components/LocationPicker";
 import StatusBadge from "../components/StatusBadge";
-
-const CATEGORIES = [
-  { value: "pothole", label: "Pothole (Road Damage)" },
-  { value: "garbage", label: "Garbage Dump / Overflow" },
-  { value: "streetlight", label: "Broken Streetlight" },
-  { value: "water_leak", label: "Water Pipeline Leak" },
-  { value: "other", label: "Other Civic Issue" },
-];
+import { REPORT_CATEGORY_OPTIONS, getCategoryMeta } from "../utils/categoryMeta";
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -200,7 +193,9 @@ const ReportIssue = () => {
       // Note: Do not set Content-Type header manually; Axios and browser will supply the correct boundary
       await api.post("/issues", formData);
 
-      setSuccess("Issue reported successfully! Redirecting to dashboard...");
+      setSuccess(
+        "ಧನ್ಯವಾದಗಳು (Dhanyavadagalu — Thank You)! Your civic report has been submitted to BBMP authorities. Redirecting to your dashboard..."
+      );
 
       // Short delay so user sees success message before redirect
       setTimeout(() => {
@@ -246,19 +241,25 @@ const ReportIssue = () => {
 
           {/* Category */}
           <div className="form-group">
-            <label htmlFor="category">Category *</label>
+            <div className="label-with-kannada-row">
+              <label htmlFor="category">Category *</label>
+              <span className="kannada-field-label">ವರ್ಗ: {getCategoryMeta(category).kannada}</span>
+            </div>
             <select
               id="category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={submitting}
             >
-              {CATEGORIES.map((cat) => (
+              {REPORT_CATEGORY_OPTIONS.map((cat) => (
                 <option key={cat.value} value={cat.value}>
-                  {cat.label}
+                  {cat.icon} {cat.label} · {cat.kannada}
                 </option>
               ))}
             </select>
+            <small className="form-help category-kannada-hint">
+              <strong>{getCategoryMeta(category).kannada} ({getCategoryMeta(category).kannadaTranslit})</strong> — {getCategoryMeta(category).description}
+            </small>
           </div>
 
           {/* Description */}
