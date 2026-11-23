@@ -7,6 +7,21 @@ import UpvoteButton from "./UpvoteButton";
 import { useAuth } from "../context/AuthContext";
 import { getCategoryMeta } from "../utils/categoryMeta";
 
+// Workflow progression steps for 4-step tracker
+const WORKFLOW_STEPS = [
+  { id: "reported", label: "Reported" },
+  { id: "verified", label: "Verified" },
+  { id: "in_progress", label: "In Progress" },
+  { id: "resolved", label: "Resolved" },
+];
+
+const STATUS_INDEX_MAP = {
+  reported: 0,
+  verified: 1,
+  in_progress: 2,
+  resolved: 3,
+};
+
 // Helper to format date string
 const formatDate = (dateString) => {
   if (!dateString) return "";
@@ -30,6 +45,7 @@ const IssueCard = ({ issue }) => {
   );
   const isResolved = issue.status === "resolved";
   const catMeta = getCategoryMeta(issue.category);
+  const statusIndex = STATUS_INDEX_MAP[issue.status] ?? 0;
 
   return (
     <Link to={`/issues/${issue._id}`} className="issue-card-link">
@@ -39,8 +55,15 @@ const IssueCard = ({ issue }) => {
             <img src={issue.imageUrl} alt={issue.title} className="issue-card-image" />
           </div>
         ) : (
-          <div className="issue-card-image-placeholder">
-            <span>📷 No Photo</span>
+          <div
+            className="issue-card-image-placeholder"
+            style={{
+              background: `linear-gradient(135deg, ${catMeta.color}18 0%, var(--surface-2) 100%)`,
+              borderBottom: `1px solid var(--border-color)`,
+            }}
+          >
+            <span className="placeholder-cat-icon">{catMeta.icon}</span>
+            <span className="placeholder-cat-label">{catMeta.label} · {catMeta.kannada}</span>
           </div>
         )}
 
@@ -69,6 +92,30 @@ const IssueCard = ({ issue }) => {
               📍 {issue.address}
             </p>
           )}
+
+          {/* Compact 4-Step Progress Tracker */}
+          <div className="card-progress-wrapper" aria-label={`Workflow stage: ${issue.status}`}>
+            <div className="card-progress-track">
+              {WORKFLOW_STEPS.map((step, idx) => {
+                const isCompleted = statusIndex > idx;
+                const isCurrent = statusIndex === idx;
+                const isPending = statusIndex < idx;
+
+                let stepClass = "step-pending";
+                if (isCompleted) stepClass = "step-completed";
+                else if (isCurrent) stepClass = "step-current";
+
+                return (
+                  <div key={step.id} className={`card-step-item ${stepClass}`}>
+                    <div className="card-step-indicator">
+                      {isCompleted ? "✓" : idx + 1}
+                    </div>
+                    <span className="card-step-name">{step.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="issue-card-footer">
             <div

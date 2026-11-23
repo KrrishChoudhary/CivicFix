@@ -1,7 +1,9 @@
 // client/src/pages/AdminDashboard.jsx
 // Administrative console for managing civic issue workflows and reviewing analytics
+// Redesigned with two distinct tabs: "Overview" (KPIs, Charts, Needs Attention) and "Manage Issues" (Sticky filters, Table with mobile cards, Pagination)
+// Persists active tab in URL hash (#overview or #issues)
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -16,7 +18,6 @@ import {
   Cell,
   LineChart,
   Line,
-  Legend,
 } from "recharts";
 import api from "../api/axios";
 import { useTheme } from "../context/ThemeContext";
@@ -38,15 +39,6 @@ const ACTION_BUTTON_LABELS = {
   in_progress: "Start Work",
   resolved: "Mark Resolved",
 };
-
-const CATEGORIES = [
-  { value: "", label: "All Categories" },
-  { value: "pothole", label: "Pothole" },
-  { value: "garbage", label: "Garbage" },
-  { value: "streetlight", label: "Streetlight" },
-  { value: "water_leak", label: "Water Leak" },
-  { value: "other", label: "Other" },
-];
 
 const STATUSES = [
   { value: "", label: "All Statuses" },
@@ -135,21 +127,6 @@ const THEME_CHART_CONFIG = {
   },
 };
 
-const CATEGORY_DISPLAY_NAMES = {
-  pothole: "Pothole",
-  garbage: "Garbage",
-  streetlight: "Streetlight",
-  water_leak: "Water Leak",
-  other: "Other",
-};
-
-const STATUS_DISPLAY_NAMES = {
-  reported: "Reported",
-  verified: "Verified",
-  in_progress: "In Progress",
-  resolved: "Resolved",
-};
-
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -173,20 +150,56 @@ const formatDayTick = (dateStr) => {
   return `${day} ${month}`;
 };
 
+const PAGE_SIZE = 10;
+
 const AdminDashboard = () => {
   const { theme } = useTheme();
   const chartTheme = THEME_CHART_CONFIG[theme] || THEME_CHART_CONFIG.light;
 
-  // Table state
+  // 1. Remember Tab via URL Hash (#overview or #issues)
+  const getInitialTab = () => {
+    if (typeof window !== "undefined" && window.location.hash === "#issues") {
+      return "issues";
+    }
+    return "overview";
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === "#issues") {
+        setActiveTab("issues");
+      } else {
+        setActiveTab("overview");
+      }
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  const switchTab = (tabId) => {
+    setActiveTab(tabId);
+    if (typeof window !== "undefined") {
+      window.location.hash = tabId === "issues" ? "#issues" : "#overview";
+    }
+  };
+
+  // Table & Issues State
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Filter state
+  // Filters State
+  const [searchTitle, setSearchTitle] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [sortByPriority, setSortByPriority] = useState(false);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Per-row remark inputs & updating state
   const [remarks, setRemarks] = useState({});
@@ -226,6 +239,7 @@ const AdminDashboard = () => {
 
       const res = await api.get("/issues", { params });
       setIssues(res.data.issues || []);
+      setCurrentPage(1); // Reset to page 1 on filter/fetch change
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load issues for admin console.");
     } finally {
@@ -270,175 +284,292 @@ const AdminDashboard = () => {
         )
       );
 
-      // Clear remark for this row
-      setRemarks((prev) => ({ ...prev, [issueId]: "" }));
-      setSuccess(`Issue successfully updated to "${nextStatus}".`);
-
-      // Refresh analytics stats to reflect status advancement
+      // Refresh aggregated stats to keep charts in sync
       fetchStats();
 
-      // Auto-clear success message after 3 seconds
-      setTimeout(() => setSuccess(""), 3000);
+      setSuccess(`Issue workflow status transitioned to "${nextStatus}" successfully.`);
+      setRemarks((prev) => {
+        const copy = { ...prev };
+        delete copy[issueId];
+        return copy;
+      });
     } catch (err) {
-      setError(
-        err.response?.data?.message || `Failed to update issue status to ${nextStatus}.`
-      );
+      setError(err.response?.data?.message || "Failed to update issue status.");
     } finally {
       setUpdatingId(null);
     }
   };
 
-  // Prepare chart datasets
-  const categoryChartData = stats?.byCategory?.map((item) => ({
-    name: CATEGORY_DISPLAY_NAMES[item.category] || item.category,
-    count: item.count,
-  })) || [];
+  // Client-side search filtering by title
+  const filteredIssues = useMemo(() => {
+    if (!searchTitle.trim()) return issues;
+    const q = searchTitle.toLowerCase().trim();
+    return issues.filter((i) => (i.title || "").toLowerCase().includes(q));
+  }, [issues, searchTitle]);
 
-  const statusChartData = stats?.byStatus?.map((item) => ({
-    name: STATUS_DISPLAY_NAMES[item.status] || item.status,
-    value: item.count,
-    statusKey: item.status,
-  })) || [];
+  // Client-side pagination slices
+  const totalFiltered = filteredIssues.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+  const validPage = Math.min(currentPage, totalPages);
+  const startIdx = totalFiltered === 0 ? 0 : (validPage - 1) * PAGE_SIZE;
+  const endIdx = Math.min(validPage * PAGE_SIZE, totalFiltered);
+  const paginatedIssues = filteredIssues.slice(startIdx, endIdx);
 
-  const trendChartData = stats?.perDay?.map((item) => ({
-    date: item.date,
-    displayDate: formatDayTick(item.date),
-    count: item.count,
-  })) || [];
+  // Top 5 "Needs Attention" open issues (by priority score)
+  const needsAttentionIssues = useMemo(() => {
+    return [...issues]
+      .filter((i) => i.status !== "resolved")
+      .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0))
+      .slice(0, 5);
+  }, [issues]);
 
-  const hasStatusData = statusChartData.some((item) => item.value > 0);
+  // Chart data formatting
+  const categoryChartData = useMemo(() => {
+    if (!stats?.byCategory) return [];
+    return stats.byCategory.map((item) => {
+      const meta = getCategoryMeta(item.category);
+      return {
+        name: meta.label,
+        count: item.count,
+        color: meta.color,
+      };
+    });
+  }, [stats]);
+
+  const statusChartData = useMemo(() => {
+    if (!stats?.byStatus) return [];
+    return stats.byStatus.map((item) => ({
+      name: item._id ? item._id.charAt(0).toUpperCase() + item._id.slice(1).replace("_", " ") : "Unknown",
+      statusKey: item._id,
+      count: item.count,
+    }));
+  }, [stats]);
+
+  const trendChartData = useMemo(() => {
+    if (!stats?.perDay) return [];
+    return stats.perDay.map((item) => ({
+      date: item.date,
+      displayDate: formatDayTick(item.date),
+      count: item.count,
+    }));
+  }, [stats]);
+
+  // Today's formatted date string
+  const todayDateFormatted = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
   return (
-    <div className="page-container admin-page-container">
-      {/* Header */}
-      <div className="admin-header">
-        <div>
-          <h1>Admin Control Panel & Analytics</h1>
+    <div className="page-container admin-dashboard-page-container">
+      {/* 1. Page Header with Title, Today's Date, and Quick Actions */}
+      <section className="admin-header-card" aria-labelledby="admin-title">
+        <div className="admin-header-main">
+          <div className="admin-header-badge">
+            <span className="badge badge-admin">🛡️ BBMP Admin Console</span>
+            <span className="admin-header-date">📅 {todayDateFormatted}</span>
+          </div>
+          <h1 id="admin-title" className="admin-page-title">
+            Bengaluru Municipal Operations Console
+          </h1>
           <p className="admin-subtitle">
-            Municipal triage console, aggregated analytics pipelines, and workflow progress.
+            Municipal triage console, aggregated analytics pipelines, and ward workflow progress.
           </p>
         </div>
 
-        <Link to="/map" className="btn btn-outline btn-sm">
-          View on Map
-        </Link>
-      </div>
+        <div className="admin-header-actions">
+          <Link to="/map" className="btn btn-outline btn-sm">
+            🗺️ Public Map
+          </Link>
+          <Link to="/report" className="btn btn-primary btn-sm">
+            + Report Issue
+          </Link>
+        </div>
+      </section>
+
+      {/* 2. Top-Level Tab Switcher (#overview vs #issues) */}
+      <nav className="admin-tabs-nav" role="tablist" aria-label="Administrative Console Sections">
+        <button
+          type="button"
+          role="tab"
+          id="tab-btn-overview"
+          aria-selected={activeTab === "overview"}
+          aria-controls="panel-overview"
+          className={`admin-nav-tab-btn ${activeTab === "overview" ? "active" : ""}`}
+          onClick={() => switchTab("overview")}
+        >
+          <span className="tab-btn-icon">📊</span>
+          <span>City Overview &amp; Analytics</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          id="tab-btn-issues"
+          aria-selected={activeTab === "issues"}
+          aria-controls="panel-issues"
+          className={`admin-nav-tab-btn ${activeTab === "issues" ? "active" : ""}`}
+          onClick={() => switchTab("issues")}
+        >
+          <span className="tab-btn-icon">📋</span>
+          <span>Manage Civic Issues</span>
+          <span className="admin-tab-count-pill">{issues.length}</span>
+        </button>
+      </nav>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
       {statsError && <div className="alert alert-danger">{statsError}</div>}
 
-      {/* Analytics KPI Cards & Statistical Charts Section */}
-      <div className="admin-analytics-section">
-        <h2 className="analytics-section-title">📊 Operational Overview</h2>
-
-        {statsLoading ? (
-          <Loader message="Loading municipal analytics..." minHeight="160px" />
-        ) : !stats || stats.totals?.total === 0 ? (
-          <EmptyState
-            title="No civic data recorded yet"
-            message="Once citizens report issues across Bengaluru wards, live statistical charts and status funnels will appear here."
-            className="mb-4"
-          />
-        ) : (
-          <>
-            {/* Summary KPI Metric Cards */}
+      {/* ========================================================
+          TAB PANEL 1: OVERVIEW & ANALYTICS
+          ======================================================== */}
+      {activeTab === "overview" && (
+        <div
+          id="panel-overview"
+          role="tabpanel"
+          aria-labelledby="tab-btn-overview"
+          className="admin-tab-panel"
+        >
+          {/* A. KPI Metric Cards Row */}
+          <section className="admin-kpi-section" aria-label="Key Performance Indicators">
             <div className="admin-metrics-grid">
+              {/* Metric 1: Total */}
               <div className="metric-card">
-                <div className="metric-icon">📋</div>
-                <div className="metric-details">
-                  <span className="metric-label">Total Issues</span>
-                  <span className="metric-value">{stats.totals.total}</span>
+                <div className="metric-icon-wrapper metric-icon-total">📢</div>
+                <div className="metric-content">
+                  <span className="metric-label">Total Issues Logged</span>
+                  {statsLoading ? (
+                    <div className="stat-skeleton"></div>
+                  ) : (
+                    <span className="metric-value">{stats?.totals?.total ?? 0}</span>
+                  )}
+                  <span className="metric-desc">Across all wards</span>
                 </div>
               </div>
 
-              <div className="metric-card metric-open">
-                <div className="metric-icon">⏳</div>
-                <div className="metric-details">
+              {/* Metric 2: Open */}
+              <div className="metric-card">
+                <div className="metric-icon-wrapper metric-icon-open">⚡</div>
+                <div className="metric-content">
                   <span className="metric-label">Open / In Progress</span>
-                  <span className="metric-value">{stats.totals.open}</span>
+                  {statsLoading ? (
+                    <div className="stat-skeleton"></div>
+                  ) : (
+                    <span className="metric-value">{stats?.totals?.open ?? 0}</span>
+                  )}
+                  <span className="metric-desc">Awaiting resolution</span>
                 </div>
               </div>
 
-              <div className="metric-card metric-resolved">
-                <div className="metric-icon">✅</div>
-                <div className="metric-details">
+              {/* Metric 3: Resolved */}
+              <div className="metric-card">
+                <div className="metric-icon-wrapper metric-icon-resolved">✅</div>
+                <div className="metric-content">
                   <span className="metric-label">Resolved Issues</span>
-                  <span className="metric-value">{stats.totals.resolved}</span>
+                  {statsLoading ? (
+                    <div className="stat-skeleton"></div>
+                  ) : (
+                    <span className="metric-value">{stats?.totals?.resolved ?? 0}</span>
+                  )}
+                  <span className="metric-desc">Work certified</span>
                 </div>
               </div>
 
-              <div className="metric-card metric-resolution">
-                <div className="metric-icon">⚡</div>
-                <div className="metric-details">
+              {/* Metric 4: Avg Resolution Time */}
+              <div className="metric-card">
+                <div className="metric-icon-wrapper metric-icon-time">⏱️</div>
+                <div className="metric-content">
                   <span className="metric-label">Avg Resolution Time</span>
-                  <span className="metric-value">
-                    {stats.avgResolutionHours !== null
-                      ? `${stats.avgResolutionHours}h`
-                      : "N/A"}
-                  </span>
+                  {statsLoading ? (
+                    <div className="stat-skeleton"></div>
+                  ) : (
+                    <span className="metric-value">
+                      {stats?.avgResolutionHours !== null && stats?.avgResolutionHours !== undefined
+                        ? stats.avgResolutionHours >= 24
+                          ? `${(stats.avgResolutionHours / 24).toFixed(1)}d`
+                          : `${stats.avgResolutionHours}h`
+                        : "N/A"}
+                    </span>
+                  )}
+                  <span className="metric-desc">Creation to certification</span>
                 </div>
               </div>
             </div>
+          </section>
 
-            {/* Charts Grid */}
-            <div className="admin-charts-grid">
-              {/* 1. Bar Chart: Issues by Category */}
-              <div className="chart-card">
-                <h3 className="chart-title">Issues by Category</h3>
-                <div className="chart-wrapper">
-                  <ResponsiveContainer width="100%" height={240}>
-                    <BarChart
-                      data={categoryChartData}
-                      margin={{ top: 10, right: 15, left: -15, bottom: 20 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.gridStroke} />
-                      <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 11, fill: chartTheme.tickFill }}
-                        interval={0}
-                        angle={-15}
-                        textAnchor="end"
-                      />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: chartTheme.tickFill }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: chartTheme.tooltipBg,
-                          borderColor: chartTheme.tooltipBorder,
-                          color: chartTheme.tooltipText,
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                        }}
-                      />
-                      <Bar dataKey="count" fill={chartTheme.barColor} radius={[4, 4, 0, 0]} name="Issues" />
-                    </BarChart>
-                  </ResponsiveContainer>
+          {/* B. Charts Section in 2-Column Grid + Full Width Trend */}
+          <section className="admin-charts-section" aria-label="Analytical Visualizations">
+            {statsLoading ? (
+              <Loader message="Loading municipal analytics..." minHeight="220px" />
+            ) : !stats || stats.totals?.total === 0 ? (
+              <EmptyState
+                title="No civic data recorded yet"
+                message="Once citizens report issues across Bengaluru wards, live statistical charts and status funnels will appear here."
+              />
+            ) : (
+              <div className="admin-charts-grid">
+                {/* Chart 1: Category Distribution */}
+                <div className="chart-card">
+                  <h3 className="chart-title">Issues by Category</h3>
+                  <p className="chart-subtitle">Breakdown of reported civic infrastructure issues</p>
+                  <div className="chart-wrapper">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart
+                        data={categoryChartData}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 25 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.gridStroke} />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: chartTheme.tickFill }}
+                          interval={0}
+                          angle={-15}
+                          textAnchor="end"
+                        />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: chartTheme.tickFill }} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: chartTheme.tooltipBg,
+                            borderColor: chartTheme.tooltipBorder,
+                            color: chartTheme.tooltipText,
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                          }}
+                        />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                          {categoryChartData.map((entry, index) => (
+                            <Cell key={`cat-cell-${index}`} fill={entry.color || chartTheme.barColor} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-              </div>
 
-              {/* 2. Donut/Pie Chart: Issues by Status */}
-              <div className="chart-card">
-                <h3 className="chart-title">Issues by Status</h3>
-                <div className="chart-wrapper">
-                  {!hasStatusData ? (
-                    <div className="chart-empty-message">No status data available</div>
-                  ) : (
+                {/* Chart 2: Status Breakdown Donut */}
+                <div className="chart-card">
+                  <h3 className="chart-title">Workflow Status Breakdown</h3>
+                  <p className="chart-subtitle">Proportion of issues at each operational phase</p>
+                  <div className="chart-wrapper chart-donut-wrapper">
                     <ResponsiveContainer width="100%" height={240}>
                       <PieChart>
                         <Pie
                           data={statusChartData}
-                          dataKey="value"
+                          dataKey="count"
                           nameKey="name"
                           cx="50%"
-                          cy="45%"
-                          innerRadius={50}
-                          outerRadius={75}
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={85}
                           paddingAngle={3}
                         >
                           {statusChartData.map((entry) => (
                             <Cell
-                              key={entry.statusKey}
-                              fill={chartTheme.statusColors[entry.statusKey] || chartTheme.tickFill}
+                              key={`status-cell-${entry.statusKey}`}
+                              fill={chartTheme.statusColors[entry.statusKey] || chartTheme.barColor}
                             />
                           ))}
                         </Pie>
@@ -451,223 +582,408 @@ const AdminDashboard = () => {
                             boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
                           }}
                         />
-                        <Legend
-                          verticalAlign="bottom"
-                          iconType="circle"
-                          wrapperStyle={{ fontSize: "12px", paddingTop: "8px", color: chartTheme.tickFill }}
-                        />
                       </PieChart>
                     </ResponsiveContainer>
-                  )}
+                    <div className="donut-legend">
+                      {statusChartData.map((item) => (
+                        <div key={item.statusKey} className="donut-legend-item">
+                          <span
+                            className="donut-legend-dot"
+                            style={{
+                              backgroundColor:
+                                chartTheme.statusColors[item.statusKey] || chartTheme.barColor,
+                            }}
+                          ></span>
+                          <span className="donut-legend-label">{item.name}:</span>
+                          <strong className="donut-legend-count">{item.count}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* 3. Line Chart: 30-Day Activity Trend */}
-              <div className="chart-card chart-card-wide">
-                <h3 className="chart-title">Issues Created Per Day (Last 30 Days)</h3>
-                <div className="chart-wrapper">
-                  <ResponsiveContainer width="100%" height={240}>
-                    <LineChart
-                      data={trendChartData}
-                      margin={{ top: 10, right: 20, left: -15, bottom: 10 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.gridStroke} />
-                      <XAxis
-                        dataKey="displayDate"
-                        tick={{ fontSize: 11, fill: chartTheme.tickFill }}
-                        minTickGap={25}
-                      />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: chartTheme.tickFill }} />
-                      <Tooltip
-                        labelFormatter={(label) => `Date: ${label}`}
-                        contentStyle={{
-                          backgroundColor: chartTheme.tooltipBg,
-                          borderColor: chartTheme.tooltipBorder,
-                          color: chartTheme.tooltipText,
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke={chartTheme.lineColor}
-                        strokeWidth={2.5}
-                        dot={{ r: 3, fill: chartTheme.lineColor }}
-                        activeDot={{ r: 5 }}
-                        name="New Issues"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                {/* Chart 3: 30-Day Activity Trend (Full Width) */}
+                <div className="chart-card chart-card-wide">
+                  <h3 className="chart-title">Daily Activity Trend (Past 30 Days)</h3>
+                  <p className="chart-subtitle">Daily count of citizen-reported issues</p>
+                  <div className="chart-wrapper">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <LineChart
+                        data={trendChartData}
+                        margin={{ top: 10, right: 20, left: -20, bottom: 10 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.gridStroke} />
+                        <XAxis
+                          dataKey="displayDate"
+                          tick={{ fontSize: 11, fill: chartTheme.tickFill }}
+                          minTickGap={25}
+                        />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: chartTheme.tickFill }} />
+                        <Tooltip
+                          labelFormatter={(label) => `Date: ${label}`}
+                          contentStyle={{
+                            backgroundColor: chartTheme.tooltipBg,
+                            borderColor: chartTheme.tooltipBorder,
+                            color: chartTheme.tooltipText,
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke={chartTheme.lineColor}
+                          strokeWidth={2.5}
+                          dot={{ r: 2.5, fill: chartTheme.lineColor }}
+                          activeDot={{ r: 5 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
+            )}
+          </section>
+
+          {/* C. "Needs Attention" List: Top 5 Open Issues by Priority */}
+          <section className="needs-attention-section" aria-labelledby="needs-attention-heading">
+            <div className="section-header-row">
+              <div>
+                <h2 id="needs-attention-heading" className="section-heading-text">
+                  🚨 Priority Issues Needing Attention
+                </h2>
+                <p className="section-heading-sub">
+                  Top 5 highest priority open civic issues requiring urgent ward engineering action.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSortByPriority(true);
+                  switchTab("issues");
+                }}
+                className="btn btn-outline btn-sm"
+              >
+                View All in Table →
+              </button>
             </div>
-          </>
-        )}
-      </div>
 
-      {/* Filter Controls Bar */}
-      <div className="admin-filters-bar">
-        <div className="filter-group">
-          <label htmlFor="admin-cat-filter">Category:</label>
-          <select
-            id="admin-cat-filter"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            {CATEGORY_OPTIONS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.icon} {c.label} {c.kannada ? `· ${c.kannada}` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="admin-status-filter">Status:</label>
-          <select
-            id="admin-status-filter"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            {STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group sort-toggle-group">
-          <button
-            type="button"
-            className={`btn btn-sm ${sortByPriority ? "btn-primary" : "btn-outline"} sort-toggle-btn`}
-            onClick={() => setSortByPriority((prev) => !prev)}
-            title={
-              sortByPriority
-                ? "Sorted by priority score (highest first)"
-                : "Click to sort by dynamic priority score"
-            }
-          >
-            {sortByPriority ? "⚡ Sorted by Priority" : "🕒 Sort by Priority"}
-          </button>
-        </div>
-
-        <div className="filter-count-badge">
-          {loading ? "Loading..." : `${issues.length} total ${issues.length === 1 ? "issue" : "issues"}`}
-        </div>
-      </div>
-
-      {/* Issues Table */}
-      <div className="admin-table-card">
-        {loading ? (
-          <Loader message="Loading issue records..." minHeight="200px" />
-        ) : issues.length === 0 ? (
-          <EmptyState
-            title="No issues found"
-            message="No issue records match your current filter parameters. Time for a filter coffee!"
-          />
-        ) : (
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Category</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                  <th>Reported By</th>
-                  <th>Date</th>
-                  <th>Workflow Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {issues.map((issue) => {
-                  const nextStatus = NEXT_ALLOWED_STATUS[issue.status];
-                  const actionLabel = nextStatus ? ACTION_BUTTON_LABELS[nextStatus] : null;
-                  const isRowUpdating = updatingId === issue._id;
-
+            {loading ? (
+              <Loader message="Assessing top priority issues..." minHeight="140px" />
+            ) : needsAttentionIssues.length === 0 ? (
+              <div className="attention-empty-card">
+                <span>🎉</span> All reported issues are currently resolved!
+              </div>
+            ) : (
+              <div className="needs-attention-grid">
+                {needsAttentionIssues.map((issue, idx) => {
+                  const catMeta = getCategoryMeta(issue.category);
                   return (
-                    <tr key={issue._id}>
-                      <td className="table-title-cell">
-                        <Link to={`/issues/${issue._id}`} className="table-title-link">
-                          <strong>{issue.title}</strong>
-                        </Link>
+                    <div key={issue._id} className="attention-card">
+                      <div className="attention-rank">#{idx + 1}</div>
+                      <div className="attention-body">
+                        <div className="attention-top-row">
+                          <span
+                            className="attention-category"
+                            style={{
+                              color: catMeta.color,
+                              backgroundColor: `${catMeta.color}15`,
+                            }}
+                          >
+                            {catMeta.icon} {catMeta.label}
+                          </span>
+                          <span className="priority-pill" title="Dynamic Priority Score">
+                            ⚡ Score: {issue.priorityScore ?? 0}
+                          </span>
+                          <StatusBadge status={issue.status} />
+                        </div>
+
+                        <h4 className="attention-title">{issue.title}</h4>
+
                         {issue.address && (
-                          <small className="table-subtext">📍 {issue.address}</small>
+                          <p className="attention-address">📍 {issue.address}</p>
                         )}
-                      </td>
 
-                      <td>
-                        {(() => {
-                          const catMeta = getCategoryMeta(issue.category);
-                          return (
-                            <span
-                              className="issue-category-tag"
-                              style={{
-                                borderColor: `${catMeta.color}40`,
-                                backgroundColor: `${catMeta.color}15`,
-                                fontSize: "0.78rem",
-                                padding: "2px 8px",
-                              }}
-                            >
-                              {catMeta.icon} {catMeta.label}{" "}
-                              <small style={{ opacity: 0.85 }}>· {catMeta.kannada}</small>
-                            </span>
-                          );
-                        })()}
-                      </td>
-
-                      <td className="table-priority-cell">
-                        <span
-                          className="priority-pill"
-                          title="Dynamic priority score (Severity + Upvotes*2 + Age)"
-                        >
-                          ⚡ {issue.priorityScore ?? 0}
-                        </span>
-                      </td>
-
-                      <td>
-                        <StatusBadge status={issue.status} />
-                      </td>
-
-                      <td>{issue.reportedBy?.name || "Citizen"}</td>
-
-                      <td>{formatDate(issue.createdAt)}</td>
-
-                      {/* Action Column */}
-                      <td className="table-action-cell">
-                        {issue.status === "resolved" ? (
-                          <span className="resolved-checkmark">✓ Resolved</span>
-                        ) : (
-                          <div className="action-control-group">
-                            <input
-                              type="text"
-                              placeholder="Optional remark..."
-                              value={remarks[issue._id] || ""}
-                              onChange={(e) => handleRemarkChange(issue._id, e.target.value)}
-                              disabled={isRowUpdating}
-                              className="action-remark-input"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleStatusUpdate(issue._id, nextStatus)}
-                              disabled={isRowUpdating}
-                              className="btn btn-primary btn-sm action-btn"
-                            >
-                              {isRowUpdating ? "Updating..." : actionLabel}
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+                        <div className="attention-footer">
+                          <span className="attention-meta">
+                            ▲ {issue.upvoteCount || 0} upvotes • Reported {formatDate(issue.createdAt)}
+                          </span>
+                          <Link to={`/issues/${issue._id}`} className="attention-link">
+                            View Issue →
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB PANEL 2: MANAGE ISSUES (TABLE, STICKY FILTERS & PAGINATION)
+          ======================================================== */}
+      {activeTab === "issues" && (
+        <div
+          id="panel-issues"
+          role="tabpanel"
+          aria-labelledby="tab-btn-issues"
+          className="admin-tab-panel"
+        >
+          {/* Sticky Filter Bar */}
+          <div className="admin-sticky-filters-bar">
+            {/* Search Input */}
+            <div className="filter-group admin-search-group">
+              <label htmlFor="admin-search-title">Search:</label>
+              <div className="admin-search-input-wrap">
+                <span className="search-icon" aria-hidden="true">🔍</span>
+                <input
+                  id="admin-search-title"
+                  type="text"
+                  placeholder="Filter by title..."
+                  value={searchTitle}
+                  onChange={(e) => {
+                    setSearchTitle(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="admin-search-input"
+                />
+                {searchTitle && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTitle("");
+                      setCurrentPage(1);
+                    }}
+                    className="admin-search-clear"
+                    aria-label="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Category Filter */}
+            <div className="filter-group">
+              <label htmlFor="admin-cat-filter">Category:</label>
+              <select
+                id="admin-cat-filter"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.icon} {c.label} {c.kannada ? `· ${c.kannada}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="filter-group">
+              <label htmlFor="admin-status-filter">Status:</label>
+              <select
+                id="admin-status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                {STATUSES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort Toggle */}
+            <div className="filter-group sort-toggle-group">
+              <button
+                type="button"
+                className={`btn btn-sm ${sortByPriority ? "btn-primary" : "btn-outline"} sort-toggle-btn`}
+                onClick={() => setSortByPriority((prev) => !prev)}
+                title={
+                  sortByPriority
+                    ? "Sorted by priority score (highest first)"
+                    : "Click to sort by dynamic priority score"
+                }
+              >
+                {sortByPriority ? "⚡ Sorted by Priority" : "🕒 Sort by Priority"}
+              </button>
+            </div>
+
+            {/* Results Count Badge */}
+            <div className="filter-count-badge">
+              {totalFiltered} {totalFiltered === 1 ? "issue" : "issues"}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Issues Table Card with Desktop Table & Mobile Stacked Cards */}
+          <div className="admin-table-card">
+            {loading ? (
+              <Loader message="Loading issue records..." minHeight="240px" />
+            ) : totalFiltered === 0 ? (
+              <EmptyState
+                title="No issues found"
+                message="No issue records match your current filter and search parameters."
+                actionLabel={searchTitle || categoryFilter || statusFilter ? "Reset Filters" : undefined}
+                onAction={() => {
+                  setSearchTitle("");
+                  setCategoryFilter("");
+                  setStatusFilter("");
+                  setSortByPriority(false);
+                }}
+              />
+            ) : (
+              <>
+                <div className="table-responsive">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        <th>Title &amp; Location</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Reported By</th>
+                        <th>Date</th>
+                        <th>Workflow Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedIssues.map((issue) => {
+                        const catMeta = getCategoryMeta(issue.category);
+                        const nextStatus = NEXT_ALLOWED_STATUS[issue.status];
+                        const actionLabel = nextStatus ? ACTION_BUTTON_LABELS[nextStatus] : null;
+                        const isRowUpdating = updatingId === issue._id;
+
+                        return (
+                          <tr key={issue._id}>
+                            {/* 1. Category */}
+                            <td data-label="Category">
+                              <span
+                                className="issue-category-tag"
+                                style={{
+                                  borderColor: `${catMeta.color}40`,
+                                  backgroundColor: `${catMeta.color}15`,
+                                  fontSize: "0.78rem",
+                                }}
+                              >
+                                {catMeta.icon} {catMeta.label}{" "}
+                                <small style={{ opacity: 0.85 }}>· {catMeta.kannada}</small>
+                              </span>
+                            </td>
+
+                            {/* 2. Title & Location */}
+                            <td data-label="Title" className="table-title-cell">
+                              <Link to={`/issues/${issue._id}`} className="table-title-link">
+                                <strong>{issue.title}</strong>
+                              </Link>
+                              {issue.address && (
+                                <small className="table-subtext">📍 {issue.address}</small>
+                              )}
+                            </td>
+
+                            {/* 3. Status */}
+                            <td data-label="Status">
+                              <StatusBadge status={issue.status} />
+                            </td>
+
+                            {/* 4. Priority Score */}
+                            <td data-label="Priority" className="table-priority-cell">
+                              <span
+                                className="priority-pill"
+                                title="Dynamic priority score (Severity + Upvotes*2 + Age)"
+                              >
+                                ⚡ {issue.priorityScore ?? 0}
+                              </span>
+                            </td>
+
+                            {/* 5. Reported By */}
+                            <td data-label="Reported By">
+                              {issue.reportedBy?.name || "Citizen"}
+                            </td>
+
+                            {/* 6. Date */}
+                            <td data-label="Date" className="table-date-cell">
+                              {formatDate(issue.createdAt)}
+                            </td>
+
+                            {/* 7. Workflow Action */}
+                            <td data-label="Workflow Action" className="table-action-cell">
+                              {nextStatus ? (
+                                <div className="action-control-group">
+                                  <input
+                                    type="text"
+                                    placeholder="Add inspection remark..."
+                                    value={remarks[issue._id] || ""}
+                                    onChange={(e) => handleRemarkChange(issue._id, e.target.value)}
+                                    className="action-remark-input"
+                                    disabled={isRowUpdating}
+                                    maxLength={500}
+                                    aria-label={`Remark for ${issue.title}`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStatusUpdate(issue._id, nextStatus)}
+                                    className="btn btn-sm btn-action-next"
+                                    disabled={isRowUpdating}
+                                  >
+                                    {isRowUpdating ? "Updating..." : actionLabel}
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="action-resolved-check" title="Issue is completed">
+                                  ✓ Certified Resolved
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Client-Side Pagination Bar */}
+                <div className="admin-pagination-bar" aria-label="Issue table pagination">
+                  <div className="pagination-range-text">
+                    Showing <strong>{startIdx + 1}</strong> to <strong>{endIdx}</strong> of{" "}
+                    <strong>{totalFiltered}</strong> issues
+                  </div>
+
+                  <div className="pagination-actions">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={validPage <= 1}
+                      className="btn btn-outline btn-sm pagination-btn"
+                      aria-label="Previous page"
+                    >
+                      ← Previous
+                    </button>
+
+                    <span className="pagination-page-indicator">
+                      Page {validPage} of {totalPages}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={validPage >= totalPages}
+                      className="btn btn-outline btn-sm pagination-btn"
+                      aria-label="Next page"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
