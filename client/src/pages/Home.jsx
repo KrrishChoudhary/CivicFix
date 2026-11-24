@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
-import AutoRickshaw from "../components/illustrations/AutoRickshaw";
+import AutoDash from "../components/AutoDash";
 import SkylineStrip from "../components/illustrations/SkylineStrip";
 
 const Home = () => {
@@ -67,13 +67,8 @@ const Home = () => {
           </Link>
         </div>
 
-        {/* Animated Auto-Rickshaw Driving across Road Line */}
-        <div className="hero-road-container" aria-hidden="true">
-          <div className="hero-auto-driver">
-            <AutoRickshaw width={68} height={46} />
-          </div>
-          <div className="hero-road-line"></div>
-        </div>
+        {/* Auto Dash mini endless-runner game */}
+        <AutoDash />
       </section>
 
       {/* 2. Live Bengaluru Civic Stats Strip */}
