@@ -1,38 +1,62 @@
 // client/src/components/ThemeSwitcher.jsx
-// Compact, accessible theme switcher component for CivicFix navbar
-// Supports Light, Dark, Ocean, Sunset, and Namma themes with keyboard accessibility and mobile responsiveness
+// Clean single-click toggle switch button between Light and Dark mode
 
 import { useTheme } from "../context/ThemeContext";
 
-const THEMES = [
-  { id: "light", label: "Light", icon: "☀️" },
-  { id: "dark", label: "Dark", icon: "🌙" },
-  { id: "ocean", label: "Ocean", icon: "🌊" },
-  { id: "sunset", label: "Sunset", icon: "🌅" },
-  { id: "namma", label: "Namma", icon: "🛺" },
-];
-
-const ThemeSwitcher = () => {
-  const { theme, setTheme } = useTheme();
+const ThemeSwitcher = ({ id = "theme-toggle-btn" }) => {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
-    <div className="theme-switcher" title={`Current theme: ${theme}`}>
-      <label htmlFor="theme-switcher-select" className="sr-only">
-        Select visual theme
-      </label>
-      <select
-        id="theme-switcher-select"
-        value={theme}
-        onChange={(e) => setTheme(e.target.value)}
-        className="theme-switcher-select"
-        aria-label="Color theme selector"
+    <div className="theme-switcher">
+      <button
+        id={id}
+        type="button"
+        className="theme-toggle-btn"
+        onClick={toggleTheme}
+        aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+        title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       >
-        {THEMES.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.icon} {t.label}
-          </option>
-        ))}
-      </select>
+        {isDark ? (
+          // Sun icon to switch to light mode
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        ) : (
+          // Moon icon to switch to dark mode
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        )}
+      </button>
     </div>
   );
 };

@@ -211,11 +211,12 @@ function drawRoad(ctx, roadOffset, colors) {
 function drawAutoRickshaw(ctx, auto, hornActive, _colors) {
   ctx.save();
 
-  // Pivot for pitch tilt
+  // Pivot for pitch tilt & horizontal mirror so auto faces right (forward toward incoming obstacles)
   const pivotX = auto.x + auto.width / 2;
   const pivotY = auto.y + auto.height / 2;
   ctx.translate(pivotX, pivotY);
   ctx.rotate(auto.pitch || 0);
+  ctx.scale(-1, 1);
   ctx.translate(-auto.width / 2, -auto.height / 2);
 
   const w = auto.width;
@@ -315,9 +316,11 @@ function drawAutoRickshaw(ctx, auto, hornActive, _colors) {
     ctx.beginPath();
     ctx.moveTo(bx + 14, by + bh); ctx.lineTo(bx + 8, by + bh + 6); ctx.lineTo(bx + 20, by + bh);
     ctx.fill(); ctx.stroke();
+    ctx.translate(bx + bw / 2, by + bh / 2);
+    ctx.scale(-1, 1); // Un-mirror text so it reads left-to-right
     ctx.fillStyle = '#d97706'; ctx.font = 'bold 9.5px system-ui, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('Peep peep! 🛺', bx + bw / 2, by + bh / 2);
+    ctx.fillText('Peep peep! 🛺', 0, 0);
     ctx.restore();
   }
 

@@ -1,12 +1,12 @@
 // client/src/context/ThemeContext.jsx
-// Theme management context supporting Light, Dark, Ocean, Sunset, and Namma themes
-// Persists selection to localStorage and defaults to OS preference (prefers-color-scheme)
+// Theme management context supporting Light and Dark modes (defaulting to Dark)
+// Persists selection to localStorage
 
 import { createContext, useContext, useState, useEffect } from "react";
 
 const ThemeContext = createContext();
 
-const VALID_THEMES = ["light", "dark", "ocean", "sunset", "namma"];
+const VALID_THEMES = ["dark", "light"];
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => {
@@ -16,14 +16,10 @@ export const ThemeProvider = ({ children }) => {
       if (savedTheme && VALID_THEMES.includes(savedTheme)) {
         return savedTheme;
       }
-
-      // 2. Fall back to user OS color scheme preference
-      if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        return "dark";
-      }
     }
 
-    return "light";
+    // Defaulting to "dark"
+    return "dark";
   });
 
   const setTheme = (newTheme) => {
@@ -38,13 +34,17 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   useEffect(() => {
     // Synchronize data-theme on <html> root element
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, themes: VALID_THEMES }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, themes: VALID_THEMES }}>
       {children}
     </ThemeContext.Provider>
   );
