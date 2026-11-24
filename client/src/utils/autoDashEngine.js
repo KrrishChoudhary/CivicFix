@@ -68,9 +68,9 @@ export const OBSTACLE_TYPES = {
   POTHOLE: {
     id: 'pothole',
     name: 'Road Pothole',
-    width: 44, height: 12, yOffset: -2,
+    width: 44, height: 16, yOffset: -8,
     isGroundHazard: true,
-    hitboxInset: { x: 5, y: 2, w: 10, h: 2 },
+    hitboxInset: { x: 5, y: 0, w: 10, h: 4 },
   },
   SPEEDBREAKER: {
     id: 'speedbreaker',
@@ -397,7 +397,13 @@ export class AutoDashEngine {
       if (obs.isGroundHazard) {
         // Pothole: only collides when the auto is on the ground
         if (this.auto.y >= GROUND_Y - this.auto.height - 4) {
-          hit = checkAABBIntersection(playerHitbox, obsHitbox);
+          // Ensure pothole's collision box includes a top-surface overlap margin to intersect player wheels
+          const hazardHitbox = {
+            ...obsHitbox,
+            y: Math.min(obsHitbox.y, GROUND_Y - 8),
+            height: Math.max(obsHitbox.height, 12),
+          };
+          hit = checkAABBIntersection(playerHitbox, hazardHitbox);
         }
       } else {
         hit = checkAABBIntersection(playerHitbox, obsHitbox);
