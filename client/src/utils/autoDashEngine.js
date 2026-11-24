@@ -48,9 +48,9 @@ export const GROUND_Y              = 146;  // road surface Y
 export const PHYSICS = {
   GRAVITY:           2100,   // px/s²
   JUMP_VELOCITY:     -650,   // px/s
-  INITIAL_SPEED:     280,    // px/s
-  MAX_SPEED:         540,    // px/s
-  SPEED_ACCEL_FACTOR: 0.04,  // multiplied by √distance
+  INITIAL_SPEED:     280,    // px/s (base speed)
+  MAX_SPEED:         616,    // px/s (~2.2x base speed cap)
+  SPEED_PER_100_PTS: 24,     // px/s smooth progression per 100 points
   MIN_DELTA_TIME:    0.001,  // 1 ms  — anything smaller is treated as a fluke
   MAX_DELTA_TIME:    0.05,   // 50 ms — prevents tunneling on stalled frames
 };
@@ -245,17 +245,19 @@ export class AutoDashEngine {
 
   _scheduleNextObstacle() {
     const speed = Number.isFinite(this.speed) ? this.speed : PHYSICS.INITIAL_SPEED;
+    const speedRatio = speed / PHYSICS.INITIAL_SPEED;
 
-    const airtime       = (2 * Math.abs(PHYSICS.JUMP_VELOCITY)) / PHYSICS.GRAVITY; // ≈ 0.619 s
-    const reactionWindow = 0.32;
-    const minSafeGap    = speed * (airtime + reactionWindow) + 40;
-    const randomJitter  = Math.random() * (speed * 0.55 + 140);
+    const airtime        = (2 * Math.abs(PHYSICS.JUMP_VELOCITY)) / PHYSICS.GRAVITY; // ≈ 0.619 s
+    const reactionWindow = 0.32; // minimum human reaction and ground recovery window
+    // Scale safe spawn distance proportionally to speed so impossible walls never occur
+    const minSafeGap     = speed * (airtime + reactionWindow) + (40 * speedRatio);
+    const randomJitter   = Math.random() * (speed * 0.55 + (120 * speedRatio));
 
     let gap = minSafeGap + randomJitter;
 
     // Extra buffer after tall obstacles to prevent impossible back-to-back sequences
     if (this.lastSpawnedType === 'cow' || this.lastSpawnedType === 'barricade') {
-      gap += 60;
+      gap += 60 * speedRatio;
     }
 
     // Guard against NaN / Infinity (belt-and-suspenders)
@@ -302,7 +304,7 @@ export class AutoDashEngine {
     const dt = Math.min(Math.max(dtRaw, PHYSICS.MIN_DELTA_TIME), PHYSICS.MAX_DELTA_TIME);
 
     // ── 1. Speed ─────────────────────────────────────────────────────────
-    const speedBoost = Math.sqrt(Math.max(0, this.distance)) * PHYSICS.SPEED_ACCEL_FACTOR;
+    const speedBoost = (this.score / 100) * PHYSICS.SPEED_PER_100_PTS;
     this.speed = Math.min(PHYSICS.MAX_SPEED, PHYSICS.INITIAL_SPEED + speedBoost);
 
     // ── 2. Distance & Score ──────────────────────────────────────────────
